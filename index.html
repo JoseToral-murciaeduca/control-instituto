@@ -1,10 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Instituto</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    
+    <div class="container">
+        <nav class="sidebar">
+            <h2>Dashboard</h2>
+            <ul>
+                <li><a href="#" onclick="cargarVista('inicio')">Inicio</a></li>
+                <li><a href="#" onclick="cargarVista('asignaturas')">Asignaturas</a></li>
+                <li><a href="#" onclick="cargarVista('horario')">Horario</a></li>
+                <li><a href="#" onclick="cargarVista('tests')">Zona de Test</a></li>
+            </ul>
+        </nav>
+        
+        <main id="content" class="main-content">
+            
+        </main>
+    </div>
 
+    <script src="app.js"></script>
 </body>
 </html>

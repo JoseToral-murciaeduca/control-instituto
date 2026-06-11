@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ad",
+    "nombre": "Acceso a Datos",
+    "profesor": "Juan Pedro Pérez Resina",
+    "meet": "https://meet.google.com/oau-ivhd-fcb",
+    "horario": [
+      {"dia": "Martes", "hora": "16:15 - 17:10"}
+    ]
+  },
+  {
+    "id": "pmdm",
+    "nombre": "Programación Multimedia y DM",
+    "profesor": "Juan Pedro Pérez Resina",
+    "meet": "https://meet.google.com/oau-ivhd-fcb",
+    "horario": [
+      {"dia": "Martes", "hora": "17:10 - 18:05"}
+    ]
+  },
+  {
+    "id": "di",
+    "nombre": "Desarrollo de Interfaces",
+    "profesor": "Basilio Rafael Coloma",
+    "meet": "https://meet.google.com/nbr-pznm-anb",
+    "horario": [
+      {"dia": "Martes", "hora": "18:05 - 19:00"}
+    ]
+  },
+  {
+    "id": "sge",
+    "nombre": "Sistemas de Gestión Empresarial",
+    "profesor": "Alexandre Ibañez López",
+    "meet": "https://meet.google.com/psk-ikfk-bdo",
+    "horario": [
+      {"dia": "Miércoles", "hora": "18:05 - 19:00"}
+    ]
+  },
+  {
+    "id": "psp",
+    "nombre": "Programación Servicios y Procesos",
+    "profesor": "Francisco Javier Huertas García",
+    "meet": "https://meet.google.com/fvx-thyj-myr",
+    "horario": [
+      {"dia": "Miércoles", "hora": "19:15 - 20:10"}
+    ]
+  }
+]
