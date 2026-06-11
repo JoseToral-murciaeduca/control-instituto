@@ -1,0 +1,29 @@
+[
+  {
+    "asignatura": "Acceso a Datos",
+    "tema": "Conexiones a Base de Datos y JDBC",
+    "preguntas": [
+      {
+        "id": 1,
+        "enunciado": "En una cadena de conexión JDBC estándar para MySQL en local, si hemos configurado nuestro servidor para utilizar el puerto 3307, ¿cómo se especifica correctamente en la URL?",
+        "opciones": [
+          "jdbc:mysql://localhost:3306/mi_base_datos",
+          "jdbc:mysql://localhost:3307/mi_base_datos","mysql://127.0.0.1/mi_base_datos:3307",
+          "jdbc:mariadb://localhost:3307/mi_base_datos"
+        ],
+        "respuesta_correcta": 1
+      },
+      {
+        "id": 2,
+        "enunciado": "¿Qué interfaz de Java se utiliza para ejecutar una consulta SQL precompilada, evitando así la inyección SQL?",
+        "opciones": [
+          "Statement",
+          "ResultSet",
+          "PreparedStatement",
+          "Connection"
+        ],
+        "respuesta_correcta": 2
+      }
+    ]
+  }
+]
