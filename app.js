@@ -1,10 +1,10 @@
 // Variables globales para almacenar los datos una vez cargados
 let datosAsignaturas = [];
-let datosTests = []; // Nueva variable para los exámenes
+let datosTests = [];
 
 // Cargar los datos al iniciar la página
 document.addEventListener("DOMContentLoaded", () => {
-    // Cargar asignaturas (Mantenido del código original)
+    // Cargar asignaturas
     fetch('data/asignaturas.json')
         .then(response => response.json())
         .then(data => {
@@ -51,14 +51,54 @@ function cargarVista(vista) {
     }
 
     else if (vista === 'horario') {
+        let htmlHorario = '<div class="grid-horario">';
+        const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+        diasSemana.forEach(dia => {
+            htmlHorario += `<div class="dia-columna"><h3>${dia}</h3>`;
+
+            // Recopilar las clases que tocan en este día específico
+            let clasesDelDia = [];
+            datosAsignaturas.forEach(asig => {
+                if (asig.horario) {
+                    asig.horario.forEach(h => {
+                        if (h.dia === dia) {
+                            clasesDelDia.push({ hora: h.hora, nombre: asig.nombre });
+                        }
+                    });
+                }
+            });
+
+            // Ordenar las clases por hora de inicio de menor a mayor
+            clasesDelDia.sort((a, b) => a.hora.localeCompare(b.hora));
+
+            // Pintar las tarjetas de clase o un mensaje si el día está libre
+            if (clasesDelDia.length > 0) {
+                clasesDelDia.forEach(clase => {
+                    htmlHorario += `
+                        <div class="clase-card">
+                            <span class="hora-badge">🕒 ${clase.hora}</span>
+                            <p><strong>${clase.nombre}</strong></p>
+                        </div>
+                    `;
+                });
+            } else {
+                htmlHorario += `<p class="text-muted">Día sin clases</p>`;
+            }
+
+            htmlHorario += `</div>`; // Cerrar la columna del día
+        });
+
+        htmlHorario += '</div>'; // Cerrar el grid del horario
+
         contenedor.innerHTML = `
             <h1>Horario de Clases</h1>
-            <p>Aquí construiremos la tabla dinámica cruzando los días del JSON.</p>
+            <p>Tus clases semanales ordenadas automáticamente.</p>
+            ${htmlHorario}
         `;
     }
 
     else if (vista === 'tests') {
-        // Nueva lógica para renderizar la pantalla inicial de los tests
         let htmlOpciones = '<option value="">Selecciona un test...</option>';
         datosTests.forEach((test, index) => {
             htmlOpciones += `<option value="${index}">${test.asignatura} - ${test.tema}</option>`;
@@ -78,7 +118,7 @@ function cargarVista(vista) {
     }
 }
 
-// --- NUEVAS FUNCIONES PARA EL MOTOR DE TESTS ---
+// --- FUNCIONES PARA EL MOTOR DE TESTS ---
 
 function iniciarTest() {
     const selector = document.getElementById("selectorTest");
@@ -93,7 +133,6 @@ function iniciarTest() {
     const testActual = datosTests[indiceTest];
     let htmlPreguntas = `<h2>Repasando: ${testActual.tema}</h2>`;
 
-    // Recorremos las preguntas del test seleccionado
     testActual.preguntas.forEach((pregunta, indexPregunta) => {
         htmlPreguntas += `
             <div class="card" style="margin-bottom: 15px;">
@@ -101,7 +140,6 @@ function iniciarTest() {
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
         `;
 
-        // Generamos los radio buttons para las opciones
         pregunta.opciones.forEach((opcion, indexOpcion) => {
             htmlPreguntas += `
                 <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
@@ -128,7 +166,6 @@ function evaluarTest(indiceTest) {
     let fallos = 0;
 
     testActual.preguntas.forEach((pregunta, indexPregunta) => {
-        // Buscamos qué radio button se ha marcado para cada pregunta
         const opcionSeleccionada = document.querySelector(`input[name="pregunta_${indexPregunta}"]:checked`);
 
         if (opcionSeleccionada) {
@@ -138,15 +175,13 @@ function evaluarTest(indiceTest) {
                 fallos++;
             }
         } else {
-            fallos++; // Si se la deja en blanco, cuenta como fallo
+            fallos++;
         }
     });
 
-    // Cálculos de nota sobre 10
     const totalPreguntas = testActual.preguntas.length;
     const nota = ((aciertos / totalPreguntas) * 10).toFixed(2);
 
-    // Feedback visual dependiendo de si aprueba o suspende
     const resultadoDiv = document.getElementById("resultadoTest");
     if (nota >= 5) {
         resultadoDiv.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
@@ -162,7 +197,4 @@ function evaluarTest(indiceTest) {
         <p style="margin: 0 0 10px 0;">✅ Aciertos: ${aciertos} | ❌ Fallos o Blanco: ${fallos}</p>
         <p style="margin: 0;">Nota Final: ${nota} / 10</p>
     `;
-
-    // Opcional: Subir el scroll automáticamente para ver la nota (descomentar si se desea)
-    // window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
