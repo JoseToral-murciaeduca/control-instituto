@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(response => response.json())
         .then(data => {
             datosAsignaturas = data;
-            cargarVista('inicio'); // Vista por defecto
+            cargarVista('inicio');
         })
         .catch(error => console.error("Error cargando asignaturas:", error));
 
@@ -22,19 +22,17 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(error => console.error("Error cargando tests:", error));
 });
 
-// NUEVA FUNCIÓN: Calcular qué clase toca ahora mismo
+// Calcular qué clase toca ahora mismo
 function obtenerEstadoClases() {
     const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const fecha = new Date();
     const hoy = dias[fecha.getDay()];
-    // Convertimos la hora actual a minutos (ej. 16:15 -> 16 * 60 + 15 = 975)
     const minutosActuales = fecha.getHours() * 60 + fecha.getMinutes();
 
     let claseActual = null;
     let proximaClase = null;
     let clasesDeHoy = [];
 
-    // 1. Recopilar todas las clases de hoy
     datosAsignaturas.forEach(asig => {
         if (asig.horario) {
             asig.horario.forEach(h => {
@@ -61,10 +59,8 @@ function obtenerEstadoClases() {
         }
     });
 
-    // 2. Ordenarlas cronológicamente
     clasesDeHoy.sort((a, b) => a.inicio - b.inicio);
 
-    // 3. Buscar si estamos en medio de una clase o cuál es la siguiente
     for (let clase of clasesDeHoy) {
         if (minutosActuales >= clase.inicio && minutosActuales <= clase.fin) {
             claseActual = clase;
@@ -140,35 +136,35 @@ function cargarVista(vista) {
         const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
         diasSemana.forEach(dia => {
-            htmlHorario += `<div class="dia-columna"><h3>${dia}</h3>`;
-
             let clasesDelDia = [];
+
             datosAsignaturas.forEach(asig => {
                 if (asig.horario) {
                     asig.horario.forEach(h => {
                         if (h.dia === dia) {
-                            clasesDelDia.push({ hora: h.hora, nombre: asig.nombre });
+                            clasesDelDia.push({ hora: h.hora, nombre: asig.nombre, meet: asig.meet });
                         }
                     });
                 }
             });
 
-            clasesDelDia.sort((a, b) => a.hora.localeCompare(b.hora));
-
             if (clasesDelDia.length > 0) {
+                clasesDelDia.sort((a, b) => a.hora.localeCompare(b.hora));
+
+                htmlHorario += `<div class="dia-columna"><h3>${dia}</h3>`;
+
                 clasesDelDia.forEach(clase => {
                     htmlHorario += `
                         <div class="clase-card">
                             <div class="hora-badge">🕒 ${clase.hora}</div>
                             <p><strong>${clase.nombre}</strong></p>
+                            <a href="${clase.meet}" target="_blank" class="btn-meet" style="display: block; text-align: center; margin-top: 12px; padding: 6px; font-size: 0.85rem;">🎥 Ir a Meet</a>
                         </div>
                     `;
                 });
-            } else {
-                htmlHorario += `<p class="text-muted">Día sin clases</p>`;
-            }
 
-            htmlHorario += `</div>`;
+                htmlHorario += `</div>`;
+            }
         });
 
         htmlHorario += '</div>';
@@ -197,6 +193,24 @@ function cargarVista(vista) {
             </div>
             <div id="contenedorTest"></div>
         `;
+    }
+
+    else if (vista === 'tareas') {
+        contenedor.innerHTML = `
+            <h1>Gestor de Tareas</h1>
+            <p>Organiza tus entregas y proyectos. Los datos se guardan en tu navegador.</p>
+            
+            <div class="task-container">
+                <div class="task-input-group" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="nuevaTareaInput" placeholder="Ej: Terminar proyecto..." onkeypress="manejarEnter(event)" style="flex: 2; min-width: 200px;">
+                    <input type="date" id="fechaLimiteInput" style="flex: 1; min-width: 150px; padding: 10px; background-color: var(--bg-dark); border: 1px solid #3f3f46; color: var(--text-main); border-radius: 5px; font-size: 1rem;">
+                    <button onclick="agregarTarea()" class="btn-add" style="flex: 0 0 auto;">Añadir</button>
+                </div>
+                <ul id="listaTareas" class="task-list">
+                    </ul>
+            </div>
+        `;
+        renderizarTareas();
     }
 }
 
@@ -281,8 +295,131 @@ function evaluarTest(indiceTest) {
     `;
 }
 
+// --- GESTOR DE TAREAS CON ALERTAS ---
+
+function obtenerTareas() {
+    let tareas = localStorage.getItem("mis_tareas");
+    if (!tareas) {
+        const tareasIniciales = [
+            { id: 1, texto: "Avanzar con el diseño web de AnimalMe", completada: false, fechaLimite: "" },
+            { id: 2, texto: "Revisar conexión MySQL en puerto 3307", completada: false, fechaLimite: "" }
+        ];
+        localStorage.setItem("mis_tareas", JSON.stringify(tareasIniciales));
+        return tareasIniciales;
+    }
+    return JSON.parse(tareas);
+}
+
+function guardarTareas(tareas) {
+    localStorage.setItem("mis_tareas", JSON.stringify(tareas));
+}
+
+function renderizarTareas() {
+    const lista = document.getElementById("listaTareas");
+    if (!lista) return;
+
+    const tareas = obtenerTareas();
+    lista.innerHTML = "";
+
+    // Obtener la fecha de hoy a medianoche para cálculos precisos
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    tareas.forEach(tarea => {
+        const estadoClase = tarea.completada ? "completed" : "";
+        const checkProp = tarea.completada ? "checked" : "";
+
+        let htmlBadgeAlerta = "";
+
+        // Solo calcular alertas si la tarea no está completada y tiene fecha límite
+        if (!tarea.completada && tarea.fechaLimite) {
+            const limite = new Date(tarea.fechaLimite);
+            limite.setHours(0, 0, 0, 0);
+
+            // Diferencia en milisegundos convertida a días enteros
+            const diffTiempo = limite.getTime() - hoy.getTime();
+            const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
+
+            if (diffDias < 0) {
+                htmlBadgeAlerta = `<span class="badge-alerta alerta-vencido">🛑 Vencido (${Math.abs(diffDias)}d)</span>`;
+            } else if (diffDias === 0) {
+                htmlBadgeAlerta = `<span class="badge-alerta alerta-urgente">🔥 ¡Hoy!</span>`;
+            } else if (diffDias === 1) {
+                htmlBadgeAlerta = `<span class="badge-alerta alerta-urgente">⏳ Mañana</span>`;
+            } else if (diffDias <= 3) {
+                htmlBadgeAlerta = `<span class="badge-alerta alerta-proximo">⚠️ Quedan ${diffDias} días</span>`;
+            } else {
+                htmlBadgeAlerta = `<span class="badge-alerta alerta-tiempo">📅 Con tiempo (${diffDias}d)</span>`;
+            }
+        } else if (!tarea.completada && !tarea.fechaLimite) {
+            htmlBadgeAlerta = `<span class="badge-alerta" style="color: var(--text-muted); border: 1px dashed #3f3f46;">Sin fecha</span>`;
+        }
+
+        lista.innerHTML += `
+            <li class="task-item ${estadoClase}">
+                <div class="task-content" onclick="toggleTarea(${tarea.id})">
+                    <input type="checkbox" ${checkProp}>
+                    <span>${tarea.texto}</span>
+                    ${htmlBadgeAlerta}
+                </div>
+                <button onclick="eliminarTarea(${tarea.id})" class="btn-delete">Borrar</button>
+            </li>
+        `;
+    });
+}
+
+function agregarTarea() {
+    const inputTexto = document.getElementById("nuevaTareaInput");
+    const inputFecha = document.getElementById("fechaLimiteInput");
+
+    const texto = inputTexto.value.trim();
+    const fecha = inputFecha.value; // Formato YYYY-MM-DD
+
+    if (texto === "") return;
+
+    const tareas = obtenerTareas();
+    const nuevaTarea = {
+        id: Date.now(),
+        texto: texto,
+        completada: false,
+        fechaLimite: fecha // Se guarda la cadena de fecha
+    };
+
+    tareas.push(nuevaTarea);
+    guardarTareas(tareas);
+
+    // Limpiar inputs
+    inputTexto.value = "";
+    inputFecha.value = "";
+
+    renderizarTareas();
+}
+
+function manejarEnter(event) {
+    if (event.key === "Enter") {
+        agregarTarea();
+    }
+}
+
+function toggleTarea(id) {
+    const tareas = obtenerTareas();
+    const tareaEncontrada = tareas.find(t => t.id === id);
+    if (tareaEncontrada) {
+        tareaEncontrada.completada = !tareaEncontrada.completada;
+        guardarTareas(tareas);
+        renderizarTareas();
+    }
+}
+
+function eliminarTarea(id) {
+    let tareas = obtenerTareas();
+    tareas = tareas.filter(t => t.id !== id);
+    guardarTareas(tareas);
+    renderizarTareas();
+}
+
 // --- RELOJ DIGITAL ---
 setInterval(() => {
     const elementoReloj = document.getElementById('reloj');
-    if (elementoReloj) elementoReloj.innerText = new Date().toLocaleTimeString(); 
+    if (elementoReloj) elementoReloj.innerText = new Date().toLocaleTimeString();
 }, 1000);
