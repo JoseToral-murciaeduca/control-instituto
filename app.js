@@ -22,13 +22,98 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(error => console.error("Error cargando tests:", error));
 });
 
+// NUEVA FUNCIÓN: Calcular qué clase toca ahora mismo
+function obtenerEstadoClases() {
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const fecha = new Date();
+    const hoy = dias[fecha.getDay()];
+    // Convertimos la hora actual a minutos (ej. 16:15 -> 16 * 60 + 15 = 975)
+    const minutosActuales = fecha.getHours() * 60 + fecha.getMinutes();
+
+    let claseActual = null;
+    let proximaClase = null;
+    let clasesDeHoy = [];
+
+    // 1. Recopilar todas las clases de hoy
+    datosAsignaturas.forEach(asig => {
+        if (asig.horario) {
+            asig.horario.forEach(h => {
+                if (h.dia === hoy) {
+                    const partes = h.hora.split('-');
+                    if (partes.length === 2) {
+                        const [horaInicioStr, minInicioStr] = partes[0].trim().split(':');
+                        const [horaFinStr, minFinStr] = partes[1].trim().split(':');
+
+                        const minInicio = parseInt(horaInicioStr) * 60 + parseInt(minInicioStr);
+                        const minFin = parseInt(horaFinStr) * 60 + parseInt(minFinStr);
+
+                        clasesDeHoy.push({
+                            nombre: asig.nombre,
+                            profesor: asig.profesor,
+                            meet: asig.meet,
+                            inicio: minInicio,
+                            fin: minFin,
+                            horaTexto: h.hora
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    // 2. Ordenarlas cronológicamente
+    clasesDeHoy.sort((a, b) => a.inicio - b.inicio);
+
+    // 3. Buscar si estamos en medio de una clase o cuál es la siguiente
+    for (let clase of clasesDeHoy) {
+        if (minutosActuales >= clase.inicio && minutosActuales <= clase.fin) {
+            claseActual = clase;
+        } else if (minutosActuales < clase.inicio && !proximaClase) {
+            proximaClase = clase;
+        }
+    }
+
+    return { hoy, claseActual, proximaClase };
+}
+
 function cargarVista(vista) {
     const contenedor = document.getElementById("content");
 
     if (vista === 'inicio') {
+        const estado = obtenerEstadoClases();
+
+        let htmlEstado = `<div class="card" style="margin-top: 20px;">
+                            <h2>📅 Hoy es ${estado.hoy}</h2>`;
+
+        if (estado.hoy === 'Sábado' || estado.hoy === 'Domingo') {
+            htmlEstado += `<p>¡Es fin de semana! Toca descansar o repasar la Zona de Test.</p>`;
+        } else if (estado.claseActual) {
+            htmlEstado += `
+                <div style="background-color: rgba(79, 70, 229, 0.2); border: 1px solid var(--accent); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h3 style="color: var(--accent); margin-top: 0;">🔴 Clase en curso</h3>
+                    <p><strong>${estado.claseActual.nombre}</strong> (${estado.claseActual.horaTexto})</p>
+                    <p>Profesor: ${estado.claseActual.profesor}</p>
+                    <a href="${estado.claseActual.meet}" target="_blank" class="btn-meet">Entrar a Meet ahora</a>
+                </div>
+            `;
+        } else if (estado.proximaClase) {
+            htmlEstado += `
+                <p>No tienes clase en este momento.</p>
+                <div style="background-color: var(--bg-dark); border-left: 4px solid var(--text-muted); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h3 style="margin-top: 0; color: var(--text-muted);">⏳ Próxima clase</h3>
+                    <p><strong>${estado.proximaClase.nombre}</strong> (${estado.proximaClase.horaTexto})</p>
+                </div>
+            `;
+        } else {
+            htmlEstado += `<p>Has terminado todas tus clases por hoy. ¡Buen trabajo!</p>`;
+        }
+
+        htmlEstado += `</div>`;
+
         contenedor.innerHTML = `
             <h1>Bienvenido a tu Panel de Control</h1>
-            <p>Selecciona una opción en el menú izquierdo para gestionar tu curso.</p>
+            <p>Resumen de tu jornada:</p>
+            ${htmlEstado}
         `;
     }
 
@@ -57,7 +142,6 @@ function cargarVista(vista) {
         diasSemana.forEach(dia => {
             htmlHorario += `<div class="dia-columna"><h3>${dia}</h3>`;
 
-            // Recopilar las clases que tocan en este día específico
             let clasesDelDia = [];
             datosAsignaturas.forEach(asig => {
                 if (asig.horario) {
@@ -69,15 +153,13 @@ function cargarVista(vista) {
                 }
             });
 
-            // Ordenar las clases por hora de inicio de menor a mayor
             clasesDelDia.sort((a, b) => a.hora.localeCompare(b.hora));
 
-            // Pintar las tarjetas de clase o un mensaje si el día está libre
             if (clasesDelDia.length > 0) {
                 clasesDelDia.forEach(clase => {
                     htmlHorario += `
                         <div class="clase-card">
-                            <span class="hora-badge">🕒 ${clase.hora}</span>
+                            <div class="hora-badge">🕒 ${clase.hora}</div>
                             <p><strong>${clase.nombre}</strong></p>
                         </div>
                     `;
@@ -86,10 +168,10 @@ function cargarVista(vista) {
                 htmlHorario += `<p class="text-muted">Día sin clases</p>`;
             }
 
-            htmlHorario += `</div>`; // Cerrar la columna del día
+            htmlHorario += `</div>`;
         });
 
-        htmlHorario += '</div>'; // Cerrar el grid del horario
+        htmlHorario += '</div>';
 
         contenedor.innerHTML = `
             <h1>Horario de Clases</h1>
@@ -198,3 +280,9 @@ function evaluarTest(indiceTest) {
         <p style="margin: 0;">Nota Final: ${nota} / 10</p>
     `;
 }
+
+// --- RELOJ DIGITAL ---
+setInterval(() => {
+    const elementoReloj = document.getElementById('reloj');
+    if (elementoReloj) elementoReloj.innerText = new Date().toLocaleTimeString(); 
+}, 1000);
