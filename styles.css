@@ -397,20 +397,22 @@ body {
     .sidebar {
         position: fixed;
         top: 0;
-        left: -290px; /* La barra empieza oculta fuera de la pantalla por la izquierda */
+        left: -290px;
         width: 250px;
         height: 100vh;
         z-index: 1050;
-        transition: left 0.3s ease-in-out; /* Animación de deslizamiento */
+        transition: left 0.3s ease-in-out;
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.8);
+        padding-top: 70px; /* NUEVO: Empuja el contenido hacia abajo */
+        box-sizing: border-box; /* NUEVO: Evita que el padding rompa la altura */
     }
 
     .sidebar.abierto {
-        left: 0; /* Al añadir esta clase con JS, la barra entra en pantalla */
+        left: 0;
     }
 
     .main-content {
-        padding: 70px 15px 20px 15px; /* Dejamos margen arriba para que el contenido no quede tapado por el botón */
+        padding: 70px 15px 20px 15px;
         width: 100%;
         box-sizing: border-box;
     }

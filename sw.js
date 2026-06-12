@@ -1,5 +1,5 @@
 // HEMOS CAMBIADO DE v1 a v2 PARA FORZAR LA ACTUALIZACIÓN
-const CACHE_NAME = 'instituto-v2';
+const CACHE_NAME = 'instituto-v3';
 
 self.addEventListener('install', () => {
     self.skipWaiting();
