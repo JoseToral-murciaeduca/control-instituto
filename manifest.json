@@ -1,0 +1,17 @@
+{
+  "name": "Control de Instituto",
+  "short_name": "Instituto",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1e1e24",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "iax_logo.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
+}

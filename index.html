@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - Instituto</title>
+    <link rel="icon" type="image/x-icon" href="iax_logo.ico">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -41,8 +44,18 @@
             <button onclick="enviarMensajeIA()" class="btn-send">▶</button>
         </div>
     </div>
-
-    <script src="app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito', reg))
+                    .catch(err => console.error('Error al registrar el Service Worker', err));
+            });
+        }
+    </script>
+    
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
