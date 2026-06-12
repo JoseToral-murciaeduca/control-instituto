@@ -8,24 +8,41 @@
 </head>
 <body>
 
-<div class="container">
-    <nav class="sidebar">
-        <h2>Dashboard</h2>
-        <div id="reloj" style="color: var(--text-main); font-size: 1.5rem; text-align: center; margin-bottom: 20px; font-weight: bold; background: var(--bg-dark); padding: 10px; border-radius: 8px; border: 1px solid #3f3f46;"></div>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>Dashboard</h2>
+            <div id="reloj" style="color: var(--text-main); font-size: 1.5rem; text-align: center; margin-bottom: 20px; font-weight: bold; background: var(--bg-dark); padding: 10px; border-radius: 8px; border: 1px solid #3f3f46;"></div>
+    
+            <ul>
+                <li><a href="#" onclick="cargarVista('inicio')">Inicio</a></li>
+                <li><a href="#" onclick="cargarVista('asignaturas')">Asignaturas</a></li>
+                <li><a href="#" onclick="cargarVista('horario')">Horario</a></li>
+                <li><a href="#" onclick="cargarVista('tests')">Zona de Test</a></li>
+                <li><a href="#" onclick="cargarVista('tareas')">Mis Tareas</a></li>
+            </ul>
+        </nav>
+    
+        <main id="content" class="main-content">
+        </main>
+    </div>
+    
+    <button class="btn-floating-chat" onclick="toggleChat()">💬 Asistente IA</button>
+    
+    <div class="chat-popup" id="chatPopup" style="display: none;">
+        <div class="chat-header">
+            <h3>IA de Estudio</h3>
+            <button onclick="toggleChat()" class="btn-close-chat">✖</button>
+        </div>
+        <div id="chatMessages" class="chat-messages">
+            <div class="message ai">¡Hola! Soy tu asistente. ¿En qué te ayudo hoy?</div>
+        </div>
+        <div class="chat-input-group">
+            <input type="text" id="chatInput" placeholder="Escribe tu duda..." onkeypress="manejarEnterChat(event)">
+            <button onclick="enviarMensajeIA()" class="btn-send">▶</button>
+        </div>
+    </div>
 
-        <ul>
-            <li><a href="#" onclick="cargarVista('inicio')">Inicio</a></li>
-            <li><a href="#" onclick="cargarVista('asignaturas')">Asignaturas</a></li>
-            <li><a href="#" onclick="cargarVista('horario')">Horario</a></li>
-            <li><a href="#" onclick="cargarVista('tests')">Zona de Test</a></li>
-            <li><a href="#" onclick="cargarVista('tareas')">Mis Tareas</a></li>
-        </ul>
-    </nav>
-
-    <main id="content" class="main-content">
-    </main>
-</div>
-
-<script src="app.js"></script>
+    <script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

@@ -4,7 +4,6 @@ let datosTests = [];
 
 // Cargar los datos al iniciar la página
 document.addEventListener("DOMContentLoaded", () => {
-    // Cargar asignaturas
     fetch('data/asignaturas.json')
         .then(response => response.json())
         .then(data => {
@@ -13,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch(error => console.error("Error cargando asignaturas:", error));
 
-    // Cargar batería de tests
     fetch('data/tests.json')
         .then(response => response.json())
         .then(data => {
@@ -22,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(error => console.error("Error cargando tests:", error));
 });
 
-// Calcular qué clase toca ahora mismo
 function obtenerEstadoClases() {
     const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const fecha = new Date();
@@ -201,13 +198,21 @@ function cargarVista(vista) {
             <p>Organiza tus entregas y proyectos. Los datos se guardan en tu navegador.</p>
             
             <div class="task-container">
+                <div class="actions-container">
+                    <button onclick="exportarTareas()" class="btn-secundario">📥 Exportar Backup</button>
+                    <label class="btn-secundario" style="cursor: pointer;">
+                        📤 Importar Backup
+                        <input type="file" accept=".json" style="display: none;" onchange="importarTareas(event)">
+                    </label>
+                </div>
+
                 <div class="task-input-group" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
                     <input type="text" id="nuevaTareaInput" placeholder="Ej: Terminar proyecto..." onkeypress="manejarEnter(event)" style="flex: 2; min-width: 200px;">
                     <input type="date" id="fechaLimiteInput" style="flex: 1; min-width: 150px; padding: 10px; background-color: var(--bg-dark); border: 1px solid #3f3f46; color: var(--text-main); border-radius: 5px; font-size: 1rem;">
                     <button onclick="agregarTarea()" class="btn-add" style="flex: 0 0 auto;">Añadir</button>
                 </div>
                 <ul id="listaTareas" class="task-list">
-                    </ul>
+                </ul>
             </div>
         `;
         renderizarTareas();
@@ -215,7 +220,6 @@ function cargarVista(vista) {
 }
 
 // --- FUNCIONES PARA EL MOTOR DE TESTS ---
-
 function iniciarTest() {
     const selector = document.getElementById("selectorTest");
     const indiceTest = selector.value;
@@ -295,18 +299,10 @@ function evaluarTest(indiceTest) {
     `;
 }
 
-// --- GESTOR DE TAREAS CON ALERTAS ---
-
+// --- GESTOR DE TAREAS ---
 function obtenerTareas() {
     let tareas = localStorage.getItem("mis_tareas");
-    if (!tareas) {
-        const tareasIniciales = [
-            { id: 1, texto: "Avanzar con el diseño web de AnimalMe", completada: false, fechaLimite: "" },
-            { id: 2, texto: "Revisar conexión MySQL en puerto 3307", completada: false, fechaLimite: "" }
-        ];
-        localStorage.setItem("mis_tareas", JSON.stringify(tareasIniciales));
-        return tareasIniciales;
-    }
+    if (!tareas) return [];
     return JSON.parse(tareas);
 }
 
@@ -321,7 +317,11 @@ function renderizarTareas() {
     const tareas = obtenerTareas();
     lista.innerHTML = "";
 
-    // Obtener la fecha de hoy a medianoche para cálculos precisos
+    if (tareas.length === 0) {
+        lista.innerHTML = `<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No hay tareas pendientes. ¡Todo al día!</p>`;
+        return;
+    }
+
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
@@ -331,12 +331,10 @@ function renderizarTareas() {
 
         let htmlBadgeAlerta = "";
 
-        // Solo calcular alertas si la tarea no está completada y tiene fecha límite
         if (!tarea.completada && tarea.fechaLimite) {
             const limite = new Date(tarea.fechaLimite);
             limite.setHours(0, 0, 0, 0);
 
-            // Diferencia en milisegundos convertida a días enteros
             const diffTiempo = limite.getTime() - hoy.getTime();
             const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
 
@@ -373,7 +371,7 @@ function agregarTarea() {
     const inputFecha = document.getElementById("fechaLimiteInput");
 
     const texto = inputTexto.value.trim();
-    const fecha = inputFecha.value; // Formato YYYY-MM-DD
+    const fecha = inputFecha.value;
 
     if (texto === "") return;
 
@@ -382,13 +380,12 @@ function agregarTarea() {
         id: Date.now(),
         texto: texto,
         completada: false,
-        fechaLimite: fecha // Se guarda la cadena de fecha
+        fechaLimite: fecha
     };
 
     tareas.push(nuevaTarea);
     guardarTareas(tareas);
 
-    // Limpiar inputs
     inputTexto.value = "";
     inputFecha.value = "";
 
@@ -416,6 +413,119 @@ function eliminarTarea(id) {
     tareas = tareas.filter(t => t.id !== id);
     guardarTareas(tareas);
     renderizarTareas();
+}
+
+function exportarTareas() {
+    const tareasStr = localStorage.getItem("mis_tareas");
+    if (!tareasStr || tareasStr === "[]") {
+        alert("No hay tareas para exportar.");
+        return;
+    }
+    const blob = new Blob([tareasStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mis_tareas_backup.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importarTareas(event) {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+    const lector = new FileReader();
+    lector.onload = function(e) {
+        try {
+            const contenido = e.target.result;
+            const tareasImportadas = JSON.parse(contenido);
+            if (Array.isArray(tareasImportadas)) {
+                localStorage.setItem("mis_tareas", JSON.stringify(tareasImportadas));
+                renderizarTareas();
+                alert("¡Backup restaurado con éxito!");
+            } else {
+                alert("El archivo no tiene el formato correcto.");
+            }
+        } catch (error) {
+            alert("Error al leer el archivo.");
+        }
+    };
+    lector.readAsText(archivo);
+    event.target.value = "";
+}
+
+// --- POP-UP Y CONEXIÓN CON LA API DE GEMINI ---
+
+function toggleChat() {
+    const popup = document.getElementById("chatPopup");
+    if (popup.style.display === "none" || popup.style.display === "") {
+        popup.style.display = "flex";
+        document.getElementById("chatInput").focus();
+    } else {
+        popup.style.display = "none";
+    }
+}
+
+function manejarEnterChat(event) {
+    if (event.key === "Enter") {
+        enviarMensajeIA();
+    }
+}
+
+function enviarMensajeIA() {
+    const input = document.getElementById("chatInput");
+    const prompt = input.value.trim();
+    if (prompt === "") return;
+
+    const boxMensajes = document.getElementById("chatMessages");
+
+    boxMensajes.innerHTML += `<div class="message user">${prompt}</div>`;
+    input.value = "";
+    boxMensajes.scrollTop = boxMensajes.scrollHeight;
+
+    const idCarga = "carga_" + Date.now();
+    boxMensajes.innerHTML += `<div id="${idCarga}" class="message ai"><i>Pensando...</i></div>`;
+    boxMensajes.scrollTop = boxMensajes.scrollHeight;
+
+    // Verificación de que config.js está cargado y tiene la clave
+    if (typeof CONFIG === "undefined" || !CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY === "TU_API_KEY_AQUÍ") {
+        document.getElementById(idCarga).innerHTML = "⚠️ Falta la API Key. Asegúrate de tener tu archivo config.js creado correctamente.";
+        return;
+    }
+
+    const urlAPI = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+
+    const payload = {
+        contents: [{
+            parts: [{ text: prompt }]
+        }]
+    };
+
+    fetch(urlAPI, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("Error en la respuesta de la API");
+            return response.json();
+        })
+        .then(data => {
+            let textoRespuesta = "No he recibido una respuesta válida.";
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                textoRespuesta = data.candidates[0].content.parts[0].text;
+            }
+
+            document.getElementById(idCarga).innerHTML = textoRespuesta.replace(/\n/g, "<br>");
+            boxMensajes.scrollTop = boxMensajes.scrollHeight;
+        })
+        .catch(error => {
+            console.error("Error al conectar con Gemini:", error);
+            document.getElementById(idCarga).innerHTML = "❌ Error de conexión.";
+        });
 }
 
 // --- RELOJ DIGITAL ---
