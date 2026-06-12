@@ -72,6 +72,12 @@ function obtenerEstadoClases() {
 function cargarVista(vista) {
     const contenedor = document.getElementById("content");
 
+    // CIERRE AUTOMÁTICO EN MÓVILES: Si la barra está abierta, se cierra al hacer clic en un enlace
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar && sidebar.classList.contains("abierto")) {
+        sidebar.classList.remove("abierto");
+    }
+
     if (vista === 'inicio') {
         const estado = obtenerEstadoClases();
 
@@ -195,7 +201,7 @@ function cargarVista(vista) {
     else if (vista === 'tareas') {
         contenedor.innerHTML = `
             <h1>Gestor de Tareas</h1>
-            <p>Organiza tus entregas y proyectos. Los datos se guardan en tu navegador.</p>
+            <p>Organiza tus entregas y proyectos.</p>
             
             <div class="task-container">
                 <div class="actions-container">
@@ -526,6 +532,12 @@ function enviarMensajeIA() {
             console.error("Error al conectar con Gemini:", error);
             document.getElementById(idCarga).innerHTML = "❌ Error de conexión.";
         });
+}
+
+// --- MENÚ MÓVIL ---
+function toggleMenu() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("abierto");
 }
 
 // --- RELOJ DIGITAL ---
