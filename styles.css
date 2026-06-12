@@ -369,3 +369,49 @@ body {
     cursor: pointer;
     font-weight: bold;
 }
+
+/* --- ESTILOS RESPONSIVE (MÓVIL) --- */
+.btn-menu-mobile {
+    display: none; /* Oculto por defecto en ordenadores */
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Cuando la pantalla es menor a 768px (móviles y tablets pequeñas) */
+@media (max-width: 768px) {
+    .btn-menu-mobile {
+        display: block; /* Mostramos el botón hamburguesa */
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -290px; /* La barra empieza oculta fuera de la pantalla por la izquierda */
+        width: 250px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease-in-out; /* Animación de deslizamiento */
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.8);
+    }
+
+    .sidebar.abierto {
+        left: 0; /* Al añadir esta clase con JS, la barra entra en pantalla */
+    }
+
+    .main-content {
+        padding: 70px 15px 20px 15px; /* Dejamos margen arriba para que el contenido no quede tapado por el botón */
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
