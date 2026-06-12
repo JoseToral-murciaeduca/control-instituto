@@ -1,17 +1,25 @@
-const CACHE_NAME = 'instituto-v1';
+// HEMOS CAMBIADO DE v1 a v2 PARA FORZAR LA ACTUALIZACIÓN
+const CACHE_NAME = 'instituto-v2';
 
-// Evento de instalación
 self.addEventListener('install', () => {
-    // Fuerza al service worker en espera a volverse activo
     self.skipWaiting();
 });
 
-// Evento de activación
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    // Borramos los cachés antiguos que no sean el actual (instituto-v2)
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
+    );
 });
 
-// Evento de fetch básico (necesario para que el navegador la considere PWA)
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request).catch(() => {
