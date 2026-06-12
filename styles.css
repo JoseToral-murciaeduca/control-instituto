@@ -29,6 +29,7 @@ body {
     color: var(--accent);
     font-size: 1.5rem;
     margin-bottom: 2rem;
+    margin-top: 2rem;
 }
 
 .sidebar ul {
@@ -392,7 +393,6 @@ body {
 @media (max-width: 768px) {
     .btn-menu-mobile {
         display: block; /* Mostramos el botón hamburguesa */
-        padding-bottom: 20px;
     }
 
     .sidebar {
