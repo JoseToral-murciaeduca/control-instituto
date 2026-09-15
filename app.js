@@ -122,3 +122,133 @@ function actualizarUI() {
 // Arrancar la aplicación la primera vez que carga
 actualizarUI();
 cambiarSeccion('dashboard');
+
+// ==========================================
+// LÓGICA DEL MÓDULO DE HORARIO
+// ==========================================
+
+// Asegurarnos de que el objeto horario existe en la base de datos local
+if (!appData.horario) {
+    appData.horario = {};
+    guardarDatos();
+}
+
+const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+const periodosClase = 6; // Configurado para 6 horas al día
+const tablaHorario = document.getElementById('tabla-horario');
+
+// Referencias a los elementos del Modal
+const modalHorario = document.getElementById('modal-horario');
+const inputModalDia = document.getElementById('modal-dia');
+const inputModalHora = document.getElementById('modal-hora');
+const inputModalAsignatura = document.getElementById('modal-input-asignatura');
+const inputModalColor = document.getElementById('modal-input-color');
+const modalTitulo = document.getElementById('modal-titulo');
+const btnEliminarHorario = document.getElementById('btn-eliminar-horario');
+
+// Construir la tabla del horario en pantalla
+function renderizarHorario() {
+    if (!tablaHorario) return;
+    tablaHorario.innerHTML = '';
+
+    for (let hora = 1; hora <= periodosClase; hora++) {
+        const fila = document.createElement('tr');
+
+        // Primera columna: Número de hora
+        let htmlFila = `<td class="border border-slate-200 bg-slate-50 font-bold text-slate-400 text-center">${hora}ª</td>`;
+
+        // Columnas de los días
+        diasSemana.forEach(dia => {
+            const idCelda = `${dia}-${hora}`;
+            const datosAsignatura = appData.horario[idCelda];
+
+            if (datosAsignatura) {
+                // Celda con datos guardados
+                htmlFila += `
+                    <td onclick="abrirModalHorario('${dia}', ${hora})" 
+                        class="border border-slate-200 p-2 h-20 cursor-pointer hover:opacity-80 transition-opacity text-center relative overflow-hidden"
+                        style="background-color: ${datosAsignatura.color}15;">
+                        <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${datosAsignatura.color}"></div>
+                        <span class="font-semibold text-sm" style="color: ${datosAsignatura.color}">
+                            ${datosAsignatura.asignatura}
+                        </span>
+                    </td>`;
+            } else {
+                // Celda vacía
+                htmlFila += `
+                    <td onclick="abrirModalHorario('${dia}', ${hora})" 
+                        class="border border-slate-200 border-dashed p-2 h-20 cursor-pointer hover:bg-slate-50 transition-colors">
+                    </td>`;
+            }
+        });
+
+        fila.innerHTML = htmlFila;
+        tablaHorario.appendChild(fila);
+    }
+}
+
+// Interacción con el Modal
+window.abrirModalHorario = function(dia, hora) {
+    const idCelda = `${dia}-${hora}`;
+    const datosAsignatura = appData.horario[idCelda];
+
+    inputModalDia.value = dia;
+    inputModalHora.value = hora;
+
+    if (datosAsignatura) {
+        modalTitulo.textContent = 'Editar Asignatura';
+        inputModalAsignatura.value = datosAsignatura.asignatura;
+        inputModalColor.value = datosAsignatura.color;
+        btnEliminarHorario.classList.remove('hidden');
+    } else {
+        modalTitulo.textContent = 'Añadir a 1ª Hora' .replace('1', hora);
+        inputModalAsignatura.value = '';
+        inputModalColor.value = '#a855f7'; // Color predeterminado (Morado Tailwind)
+        btnEliminarHorario.classList.add('hidden');
+    }
+
+    modalHorario.classList.remove('hidden');
+    setTimeout(() => inputModalAsignatura.focus(), 100);
+}
+
+window.cerrarModalHorario = function() {
+    modalHorario.classList.add('hidden');
+}
+
+window.guardarCeldaHorario = function() {
+    const dia = inputModalDia.value;
+    const hora = inputModalHora.value;
+    const asignatura = inputModalAsignatura.value.trim();
+    const color = inputModalColor.value;
+
+    if (asignatura === '') return; // No guardar si está vacío
+
+    const idCelda = `${dia}-${hora}`;
+    appData.horario[idCelda] = { asignatura, color };
+
+    guardarDatos();
+    renderizarHorario();
+    cerrarModalHorario();
+}
+
+window.eliminarCeldaHorario = function() {
+    const dia = inputModalDia.value;
+    const hora = inputModalHora.value;
+    const idCelda = `${dia}-${hora}`;
+
+    delete appData.horario[idCelda];
+
+    guardarDatos();
+    renderizarHorario();
+    cerrarModalHorario();
+}
+
+// Conectar con el sistema de guardado original sin modificar su código base
+const uiOriginal = window.actualizarUI;
+window.actualizarUI = function() {
+    if (typeof uiOriginal === 'function') uiOriginal();
+    renderizarHorario();
+}
+
+// Dibujar horario inicial
+renderizarHorario();

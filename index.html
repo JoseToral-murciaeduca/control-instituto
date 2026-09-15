@@ -87,10 +87,48 @@
         <!-- SECCIÓN: HORARIO -->
         <section id="horario" class="seccion-app hidden animate-fade-in">
             <h2 class="text-3xl font-bold text-slate-800 mb-8">Mi Horario</h2>
-            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center">
-                <div class="text-5xl text-slate-300 mb-4"><i class="fa-solid fa-person-digging"></i></div>
-                <h3 class="text-xl font-bold text-slate-700 mb-2">Sección en construcción</h3>
-                <p class="text-slate-500 max-w-md mx-auto">Esta sección está lista para que uses el primer prompt maestro y me pidas que te genere el código del horario.</p>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+                <table class="w-full border-collapse min-w-[600px]">
+                    <thead>
+                    <tr class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
+                        <th class="border border-slate-200 p-3 w-16 text-center">Hora</th>
+                        <th class="border border-slate-200 p-3 w-1/5 text-center">Lunes</th>
+                        <th class="border border-slate-200 p-3 w-1/5 text-center">Martes</th>
+                        <th class="border border-slate-200 p-3 w-1/5 text-center">Miércoles</th>
+                        <th class="border border-slate-200 p-3 w-1/5 text-center">Jueves</th>
+                        <th class="border border-slate-200 p-3 w-1/5 text-center">Viernes</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabla-horario">
+                    <!-- JavaScript inyectará las filas aquí -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Flotante para Añadir/Editar Asignatura -->
+            <div id="modal-horario" class="fixed inset-0 bg-slate-900 bg-opacity-40 hidden flex items-center justify-center z-50 backdrop-blur-sm transition-opacity">
+                <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 max-w-[90%] transform transition-all">
+                    <h3 id="modal-titulo" class="text-xl font-bold text-slate-800 mb-4">Añadir Asignatura</h3>
+
+                    <!-- Inputs ocultos para saber qué celda estamos editando -->
+                    <input type="hidden" id="modal-dia">
+                    <input type="hidden" id="modal-hora">
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre de la Asignatura</label>
+                        <input type="text" id="modal-input-asignatura" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition" placeholder="Ej. Bases de Datos">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Color de etiqueta</label>
+                        <input type="color" id="modal-input-color" class="w-full h-12 rounded-lg cursor-pointer border-0 p-0" value="#a855f7">
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="eliminarCeldaHorario()" id="btn-eliminar-horario" class="hidden px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition">Borrar</button>
+                        <button type="button" onclick="cerrarModalHorario()" class="px-4 py-2 text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 font-medium transition">Cancelar</button>
+                        <button type="button" onclick="guardarCeldaHorario()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-md transition">Guardar</button>
+                    </div>
+                </div>
             </div>
         </section>
 
