@@ -412,3 +412,74 @@ window.actualizarUI = function() {
 
 // Ejecutar el renderizado inicial de calificaciones
 renderizarCalificaciones();
+
+// ==========================================
+// MÓDULO DE EXPORTACIÓN / IMPORTACIÓN
+// ==========================================
+
+// EXPORTAR: Convierte los datos a un archivo y fuerza la descarga
+window.exportarDatos = function() {
+    // 1. Convertir nuestro objeto appData a texto JSON con un formato legible (2 espacios)
+    const datosJSON = JSON.stringify(appData, null, 2);
+
+    // 2. Crear un "Blob" (un archivo de datos crudos en la memoria del navegador)
+    const blob = new Blob([datosJSON], { type: 'application/json' });
+
+    // 3. Crear una URL temporal que apunte a ese Blob
+    const url = URL.createObjectURL(blob);
+
+    // 4. Crear un enlace <a> invisible para forzar la descarga
+    const enlaceDescarga = document.createElement('a');
+    enlaceDescarga.href = url;
+
+    // Añadimos la fecha actual al nombre del archivo para mejor organización
+    const fecha = new Date().toISOString().split('T')[0];
+    enlaceDescarga.download = `control_instituto_backup_${fecha}.json`;
+
+    // 5. Simular el clic y hacer limpieza
+    document.body.appendChild(enlaceDescarga);
+    enlaceDescarga.click();
+    document.body.removeChild(enlaceDescarga);
+    URL.revokeObjectURL(url);
+}
+
+// IMPORTAR: Lee el archivo subido y sobrescribe los datos actuales
+window.procesarImportacion = function(event) {
+    const archivo = event.target.files[0];
+    if (!archivo) return; // Si el usuario cancela la ventana, no hacemos nada
+
+    // Usamos FileReader, una API del navegador para leer archivos locales
+    const lector = new FileReader();
+
+    lector.onload = function(e) {
+        try {
+            // Intentamos convertir el texto del archivo a un objeto JavaScript
+            const datosImportados = JSON.parse(e.target.result);
+
+            // Verificación básica para asegurar que no es un archivo vacío o erróneo
+            if (datosImportados && typeof datosImportados === 'object') {
+
+                // Pedimos confirmación porque esto borra lo actual
+                if (confirm('⚠️ ¿Estás seguro? Esta acción sobrescribirá todos los datos que tienes actualmente en la aplicación.')) {
+
+                    appData = datosImportados; // Sustituimos los datos
+                    guardarDatos(); // Guardamos en localStorage (y renderiza la UI)
+
+                    alert('✅ ¡Copia de seguridad restaurada con éxito!');
+                    cambiarSeccion('dashboard'); // Llevamos al usuario al inicio
+                }
+            } else {
+                alert('❌ El archivo no tiene un formato válido.');
+            }
+        } catch (error) {
+            alert('❌ Error al leer el archivo. Asegúrate de que es un .json válido de Control Instituto.');
+            console.error("Error de importación:", error);
+        }
+
+        // Vaciamos el input para que permita subir el mismo archivo de nuevo si fuera necesario
+        event.target.value = '';
+    };
+
+    // Leer el contenido del archivo como texto
+    lector.readAsText(archivo);
+}
