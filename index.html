@@ -3,634 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Academia OS</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=all-features">
+    <title>Control Instituto | Mi Dashboard</title>
+    <!-- TailwindCSS por CDN para un diseño moderno sin compilar -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-50 font-sans text-slate-800">
+<div class="flex h-screen overflow-hidden">
 
-<div class="top-banner">
-    <div class="cover-actions">
-        <button onclick="mostrarToast('Cambiar portada: Función en desarrollo')">Cambiar portada</button>
-        <div class="divider"></div>
-        <button onclick="mostrarToast('Reposicionar: Función en desarrollo')">Reposicionar</button>
-    </div>
-</div>
-
-<div class="header-title">
-    <span class="icon-hat">🎓</span>
-    <h1>Mi Academia OS</h1>
-</div>
-
-<div class="os-layout">
-
-    <aside class="col-left">
-        <div class="clock-container">
-            <div class="analog-clock" id="analog-clock">
-                <div class="hand hour-hand" id="hour-hand"></div>
-                <div class="hand min-hand" id="min-hand"></div>
-                <div class="hand sec-hand" id="sec-hand"></div>
-                <div class="center-dot"></div>
-            </div>
-            <div id="digital-clock" class="digital-time">--:--:--</div>
-            <div id="date-display" class="date-text">---</div>
+    <!-- Menú Lateral (Sidebar) -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
+        <div class="p-6 border-b border-slate-800 text-center">
+            <h1 class="text-xl font-bold tracking-wider">
+                <i class="fa-solid fa-graduation-cap text-blue-400 mr-2"></i>CONTROL
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Instituto</p>
         </div>
-
-        <div class="widget">
-            <div class="widget-header">⚡ Acciones rápidas</div>
-            <ul class="clean-list action-list">
-                <li onclick="mostrarToast('Abriendo editor de nueva clase...')"><span class="dot yellow"></span> Nueva clase</li>
-                <li onclick="abrirModal()"><span class="dot yellow"></span> Nueva tarea</li>
-                <li onclick="abrirModalEntrega()"><span class="dot yellow"></span> Nueva entrega</li>
-                <li onclick="abrirModalApunte()"><span class="dot yellow"></span> Nuevo apunte</li>
-                <li onclick="abrirModalAsignatura()"><span class="dot yellow"></span> Nueva asignatura</li>
-            </ul>
-        </div>
-
-        <div class="widget music-player">
-            <div class="player-cover">
-                <img src="https://i.scdn.co/image/ab67616d00001e028b08218e8a602d2fc5790a88" alt="Lofi">
-                <div class="player-info">
-                    <strong>Estudio Lofi 2</strong>
-                    <span class="sub">Lofi Girl</span>
-                </div>
-                <div class="player-add" onclick="mostrarToast('Añadir canción a favoritos ❤️')">⊕</div>
-            </div>
-            <div class="player-controls">
-                <span onclick="mostrarToast('Pista anterior')">⏮</span>
-                <span class="play-btn" onclick="togglePlay()">▶</span>
-                <span onclick="mostrarToast('Siguiente pista')">⏭</span>
-            </div>
-            <div class="player-progress">
-                <div class="bar"><div class="fill" style="width: 45%;"></div></div>
-                <div class="time-flex"><span>02:27</span><span>05:30</span></div>
-            </div>
-        </div>
-
-        <div class="widget">
-            <div class="widget-header">📁 Navegación</div>
-            <ul class="clean-list nav-list">
-                <li onclick="mostrarToast('Navegando a Bases de Datos...')">🗃️ Bases de datos</li>
-                <li onclick="navegarA('widget-asignaturas')">📚 Asignaturas</li>
-                <li onclick="navegarA('widget-apuntes')">📝 Temas y Apuntes</li>
-                <li onclick="mostrarToast('Navegando a Clases...')">📖 Clases</li>
-                <li onclick="mostrarToast('Navegando a Profesores...')">👨‍🏫 Profesores</li>
-                <li onclick="navegarA('widget-tareas')">✅ Tareas</li>
-                <li onclick="navegarA('widget-entregas')">🎯 Entregas</li>
-            </ul>
-        </div>
-
-        <img src="https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=400" alt="Ciudad de noche" class="sidebar-img">
-
-        <div class="widget">
-            <div class="widget-header">💭 Notas rápidas</div>
-            <div class="widget-content p-0">
-                <ul class="lista-notas-ui" id="lista-notas-rapidas">
-                </ul>
-                <div style="padding: 0 15px 15px 15px;">
-                    <div class="new-page-btn" onclick="agregarNotaRapida()">+ Añadir nota</div>
-                </div>
-            </div>
+        <nav class="flex-1 p-4 space-y-2 mt-4">
+            <button onclick="cambiarSeccion('dashboard')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+                <i class="fa-solid fa-chart-line w-6 text-blue-400"></i> Resumen
+            </button>
+            <button onclick="cambiarSeccion('tareas')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+                <i class="fa-solid fa-list-check w-6 text-green-400"></i> Tareas y Exámenes
+            </button>
+            <button onclick="cambiarSeccion('horario')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+                <i class="fa-solid fa-calendar-days w-6 text-purple-400"></i> Horario
+            </button>
+        </nav>
+        <div class="p-4 text-xs text-slate-500 text-center border-t border-slate-800">
+            <i class="fa-solid fa-hard-drive mr-1"></i> Datos locales
         </div>
     </aside>
 
-    <main class="col-center">
+    <!-- Área Principal -->
+    <main class="flex-1 overflow-y-auto p-8 bg-slate-50">
 
-        <div class="widget" id="widget-asignaturas">
-            <div class="widget-header">📖 Asignaturas</div>
-            <div class="widget-content">
-                <div class="notion-toolbar">
-                    <div class="toolbar-left">
-                        <button class="t-tab active" id="btn-galeria-asig" onclick="toggleVistaAsignaturas(false)"><span class="icon">⊞</span> Galería</button>
-                        <button class="t-tab" id="btn-lista-asig" onclick="toggleVistaAsignaturas(true)"><span class="icon">≡</span> Lista</button>
+        <!-- SECCIÓN: DASHBOARD -->
+        <section id="dashboard" class="seccion-app animate-fade-in">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8">Hola, Estudiante 👋</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <i class="fa-solid fa-file-signature text-2xl text-blue-600"></i>
                     </div>
-                    <div class="toolbar-right">
-                        <input type="text" id="buscador-asignaturas" class="search-mini" placeholder="Buscar..." oninput="filtrarAsignaturas()" style="display: none;">
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" id="icon-filter-asig" onclick="toggleMenu('filtro-asig')" title="Filtrar">≡</span>
-                            <div id="filtro-asig" class="filter-dropdown" style="display: none;">
-                                <strong>Estado:</strong>
-                                <label><input type="checkbox" value="en_curso" checked onchange="filtrarAsignaturas()"> En curso</label>
-                                <label><input type="checkbox" value="completada" checked onchange="filtrarAsignaturas()"> Completadas (100%)</label>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" id="icon-sort-asig" title="Invertir orden" onclick="toggleOrdenDireccionAsignaturas()">⇅</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('auto-asig')" title="Automatizaciones">⚡</span>
-                            <div id="auto-asig" class="filter-dropdown" style="display: none; width: 160px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Notificación activada')">🔔 Avisos de progreso</div>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" title="Buscar" onclick="toggleBuscador('buscador-asignaturas')">🔍</span>
-                        <span class="t-icon" title="Pantalla Completa" onclick="toggleFullscreen(this)">⤢</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('opt-asig')" title="Opciones">⋯</span>
-                            <div id="opt-asig" class="filter-dropdown" style="display: none; width: 140px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Vista duplicada')">📑 Duplicar vista</div>
-                                <div class="profile-row p-1" onclick="mostrarToast('Exportado a PDF')">📥 Exportar PDF</div>
-                            </div>
-                        </div>
-
-                        <button class="t-btn-new" onclick="abrirModalAsignatura()">Nuevo ⌄</button>
-                    </div>
-                </div>
-
-                <div class="courses-grid" id="grid-asignaturas-mysql">
-                    <p style="grid-column: 1/-1; color: var(--text-muted); text-align: center; margin-top: 40px;">Cargando motor de asignaturas...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="widget" id="widget-tareas">
-            <div class="widget-header">✅ Tareas de esta semana</div>
-            <div class="widget-content p-0" style="padding-top: 15px; display: flex; flex-direction: column;">
-
-                <div class="notion-toolbar" style="padding: 0 15px;">
-                    <div class="toolbar-left" id="tabs-tareas">
-                        <button class="t-tab active" onclick="cambiarOrden('lista')"><span class="icon">≡</span> Lista</button>
-                        <button class="t-tab" onclick="cambiarOrden('estado')">Por estado</button>
-                        <button class="t-tab" onclick="cambiarOrden('fecha')">Por fecha</button>
-                    </div>
-                    <div class="toolbar-right">
-                        <input type="text" id="buscador-tareas" class="search-mini" placeholder="Buscar..." oninput="filtrarPorBusqueda()" style="display: none;">
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" id="icon-filter-tareas" onclick="toggleMenu('filtro-tareas')" title="Filtrar">≡</span>
-                            <div id="filtro-tareas" class="filter-dropdown" style="display: none;">
-                                <strong>Mostrar:</strong>
-                                <label><input type="checkbox" value="PENDIENTE" checked onchange="filtrarPorBusqueda()"> Pendientes</label>
-                                <label><input type="checkbox" value="COMPLETADA" checked onchange="filtrarPorBusqueda()"> Completadas</label>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" id="icon-sort-tareas" title="Invertir orden" onclick="toggleOrdenDireccionTareas()">⇅</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('auto-tareas')" title="Automatizaciones">⚡</span>
-                            <div id="auto-tareas" class="filter-dropdown" style="display: none; width: 160px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Sincronizado con Google Tasks')">🔄 Sincronizar Google</div>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" onclick="toggleBuscador('buscador-tareas')" title="Buscar">🔍</span>
-                        <span class="t-icon" title="Pantalla Completa" onclick="toggleFullscreen(this)">⤢</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('opt-tareas')" title="Opciones">⋯</span>
-                            <div id="opt-tareas" class="filter-dropdown" style="display: none; width: 140px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Tareas archivadas')">🗄️ Archivar hechas</div>
-                            </div>
-                        </div>
-
-                        <button class="t-btn-new" onclick="abrirModal()">Nuevo ⌄</button>
-                    </div>
-                </div>
-
-                <div style="flex: 1; padding: 0 15px;">
-                    <ul class="task-list-ui" id="lista-tareas-mysql">
-                        <li style="color: var(--text-muted); justify-content: center; padding: 20px 0;">Cargando motor de tareas...</li>
-                    </ul>
-                </div>
-
-                <div class="pagination-bar">
-                    <div class="new-page-btn" onclick="abrirModal()">+ Nueva página</div>
-                    <div class="page-controls">
-                        <span onclick="cambiarPagina(-1)" class="page-arrow">◀</span>
-                        <span id="info-paginacion">1 / 1</span>
-                        <span onclick="cambiarPagina(1)" class="page-arrow">▶</span>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Pendientes</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="widget" id="widget-entregas">
-            <div class="widget-header">🎯 Entregas y exámenes esta semana</div>
-            <div class="widget-content p-0" style="padding-top: 15px; display: flex; flex-direction: column;">
+        <!-- SECCIÓN: TAREAS -->
+        <section id="tareas" class="seccion-app hidden animate-fade-in">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8">Mis Tareas y Exámenes</h2>
 
-                <div class="notion-toolbar" style="padding: 0 15px;">
-                    <div class="toolbar-left" id="tabs-entregas">
-                        <button class="t-tab active" onclick="cambiarOrdenEntregas('todo')"><span class="icon">⊞</span> Todo</button>
-                        <button class="t-tab" onclick="cambiarOrdenEntregas('fecha')">Por fecha</button>
-                        <button class="t-tab" onclick="cambiarOrdenEntregas('estado')">Por estado</button>
+            <!-- Formulario -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                <form id="form-tarea" class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">¿Qué hay que hacer?</label>
+                        <input type="text" id="input-tarea" required placeholder="Ej. Estudiar tema 4, Entregar práctica..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                     </div>
-                    <div class="toolbar-right">
-                        <input type="text" id="buscador-entregas" class="search-mini" placeholder="Buscar..." oninput="filtrarEntregasPrincipal()" style="display: none;">
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" id="icon-filter-entregas" onclick="toggleMenu('menu-filtros-entregas')" title="Filtrar">≡</span>
-                            <div id="menu-filtros-entregas" class="filter-dropdown" style="display: none;">
-                                <strong>Tipos:</strong>
-                                <label><input type="checkbox" value="Proyecto" checked onchange="filtrarEntregasPrincipal()"> Proyecto</label>
-                                <label><input type="checkbox" value="Examen" checked onchange="filtrarEntregasPrincipal()"> Examen</label>
-                                <label><input type="checkbox" value="Práctica" checked onchange="filtrarEntregasPrincipal()"> Práctica</label>
-                                <label><input type="checkbox" value="Deberes" checked onchange="filtrarEntregasPrincipal()"> Deberes</label>
-                                <label><input type="checkbox" value="Presentación" checked onchange="filtrarEntregasPrincipal()"> Presentación</label>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" id="icon-sort-entregas" title="Invertir orden" onclick="toggleOrdenDireccionEntregas()">⇅</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('auto-entregas')" title="Automatizaciones">⚡</span>
-                            <div id="auto-entregas" class="filter-dropdown" style="display: none; width: 170px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Alarma añadida al móvil')">⏰ Enviar a móvil</div>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" onclick="toggleBuscador('buscador-entregas')" title="Buscar">🔍</span>
-                        <span class="t-icon" title="Pantalla Completa" onclick="toggleFullscreen(this)">⤢</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('opt-entregas')" title="Opciones">⋯</span>
-                            <div id="opt-entregas" class="filter-dropdown" style="display: none; width: 140px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Vista copiada')">🔗 Copiar enlace</div>
-                            </div>
-                        </div>
-
-                        <button class="t-btn-new" onclick="abrirModalEntrega()">Nuevo ⌄</button>
+                    <div class="w-full md:w-1/3">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Asignatura</label>
+                        <input type="text" id="input-asignatura" required placeholder="Ej. Programación" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                     </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="notion-table">
-                        <thead>
-                        <tr>
-                            <th>Entrega / Control</th>
-                            <th>Tipo</th>
-                            <th>Estado</th>
-                            <th>Fecha límite</th>
-                            <th>Plazo</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody id="tabla-entregas-mysql">
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">Cargando entregas...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="pagination-bar">
-                    <div class="new-page-btn" onclick="abrirModalEntrega()">+ Nueva página</div>
-                    <div class="page-controls">
-                        <span onclick="cambiarPaginaEntregas(-1)" class="page-arrow">◀</span>
-                        <span id="info-paginacion-entregas">1 / 1</span>
-                        <span onclick="cambiarPaginaEntregas(1)" class="page-arrow">▶</span>
-                    </div>
-                </div>
+                    <button type="submit" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md">
+                        <i class="fa-solid fa-plus mr-2"></i>Añadir
+                    </button>
+                </form>
             </div>
-        </div>
 
-        <div class="widget" id="widget-apuntes">
-            <div class="widget-header">🗒️ Apuntes y temas cubiertos</div>
-            <div class="widget-content p-0" style="padding-top: 15px; display: flex; flex-direction: column;">
-
-
-                <div class="notion-toolbar" style="padding: 0 15px;">
-                    <div class="toolbar-left" id="tabs-apuntes">
-                        <button class="t-tab active" onclick="cambiarOrdenApuntes('fecha')"><span class="icon">📅</span> Por fecha</button>
-                        <button class="t-tab" onclick="cambiarOrdenApuntes('asignatura')"><span class="icon">📚</span> Por asignaturas</button>
-                    </div>
-                    <div class="toolbar-right">
-                        <input type="text" id="buscador-apuntes" class="search-mini" placeholder="Buscar..." oninput="filtrarApuntesPrincipal()" style="display: none;">
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" id="icon-filter-apuntes" onclick="toggleMenu('menu-filtros-apuntes')" title="Filtrar">≡</span>
-                            <div id="menu-filtros-apuntes" class="filter-dropdown" style="display: none;">
-                                <strong>Viñetas:</strong>
-                                <label><input type="checkbox" value="blue" checked onchange="filtrarApuntesPrincipal()"> <span class="dot blue"></span> Azul</label>
-                                <label><input type="checkbox" value="red" checked onchange="filtrarApuntesPrincipal()"> <span class="dot red"></span> Rojo</label>
-                                <label><input type="checkbox" value="yellow" checked onchange="filtrarApuntesPrincipal()"> <span class="dot yellow"></span> Amarillo</label>
-                                <label><input type="checkbox" value="green" checked onchange="filtrarApuntesPrincipal()"> <span class="dot green"></span> Verde</label>
-                                <label><input type="checkbox" value="gray" checked onchange="filtrarApuntesPrincipal()"> <span class="dot gray"></span> Gris</label>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" id="icon-sort-apuntes" onclick="toggleOrdenDireccionApuntes()" title="Invertir columnas">⇅</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('auto-apuntes')" title="Automatizaciones">⚡</span>
-                            <div id="auto-apuntes" class="filter-dropdown" style="display: none; width: 170px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Autoguardado On')">💾 Activar autoguardado</div>
-                            </div>
-                        </div>
-
-                        <span class="t-icon" onclick="toggleBuscador('buscador-apuntes')" title="Buscar">🔍</span>
-                        <span class="t-icon" title="Pantalla Completa" onclick="toggleFullscreen(this)">⤢</span>
-
-                        <div class="icon-wrapper">
-                            <span class="t-icon" onclick="toggleMenu('opt-apuntes')" title="Opciones">⋯</span>
-                            <div id="opt-apuntes" class="filter-dropdown" style="display: none; width: 140px;">
-                                <div class="profile-row p-1" onclick="mostrarToast('Limpiando antiguos')">🧹 Limpiar semana</div>
-                            </div>
-                        </div>
-
-                        <button class="t-btn-new" onclick="abrirModalApunte()">Nuevo ⌄</button>
-                    </div>
-                </div>
-
-                <div class="month-nav-bar">
-                    <span id="texto-mes-apuntes" style="font-weight: 600;">Cargando...</span>
-                </div>
-
-                <div class="week-grid" id="grid-apuntes-mysql">
-                    <div style="padding: 20px; color: var(--text-muted); text-align: center; grid-column: 1/-1;">Cargando apuntes...</div>
-                </div>
-
-                <div class="pagination-bar">
-                    <div class="new-page-btn" onclick="abrirModalApunte()">+ Nueva página</div>
-                    <div class="page-controls">
-                        <span onclick="cambiarSemanaApuntes(-1)" class="page-arrow">◀</span>
-                        <span id="info-paginacion-apuntes" style="cursor: pointer;" onclick="cambiarSemanaApuntes(0)" title="Volver a la semana actual">Esta semana</span>
-                        <span onclick="cambiarSemanaApuntes(1)" class="page-arrow">▶</span>
-                    </div>
-                </div>
+            <!-- Lista de tareas -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <ul id="lista-tareas" class="divide-y divide-slate-100">
+                    <!-- Las tareas se inyectan aquí con JS -->
+                </ul>
             </div>
-        </div>
+        </section>
+
+        <!-- SECCIÓN: HORARIO -->
+        <section id="horario" class="seccion-app hidden animate-fade-in">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8">Mi Horario</h2>
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center">
+                <div class="text-5xl text-slate-300 mb-4"><i class="fa-solid fa-person-digging"></i></div>
+                <h3 class="text-xl font-bold text-slate-700 mb-2">Sección en construcción</h3>
+                <p class="text-slate-500 max-w-md mx-auto">Esta sección está lista para que uses el primer prompt maestro y me pidas que te genere el código del horario.</p>
+            </div>
+        </section>
 
     </main>
-
-    <aside class="col-right">
-
-        <div class="widget">
-            <div class="widget-header" title="Haz clic en cualquier fila para editar">👤 Personal</div>
-            <div class="widget-content profile-text">
-                <div class="profile-row" onclick="editarPerfil('programa', 'Curso')" style="cursor:pointer">
-                    <strong>Curso: </strong> <span id="perfil-programa">Desarrollo Multiplataforma</span>
-                </div>
-                <div class="profile-row" onclick="editarPerfil('nombre', 'Nombre')" style="cursor:pointer">
-                    <strong>Nombre: </strong> <span id="perfil-nombre">Jose</span>
-                </div>
-                <div class="profile-row" onclick="editarPerfil('id', 'ID')" style="cursor:pointer">
-                    <strong>ID: </strong> <span id="perfil-id">63667</span>
-                </div>
-                <div class="profile-row" onclick="editarPerfil('grupo', 'Grupo')" style="cursor:pointer">
-                    <strong>Grupo: </strong> <span id="perfil-grupo">2º DAM</span>
-                </div>
-                <div class="profile-row" onclick="editarPerfil('opcion', 'Opción')" style="cursor:pointer">
-                    <strong>Opción: </strong> <span id="perfil-opcion">2º DAM</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="widget timer-widget" id="timer-widget">
-            <div class="icon-wrapper" style="display: block; margin-bottom: 15px;">
-                <div class="timer-tag" onclick="toggleMenu('menu-sonidos')" id="current-sound-tag" title="Cambiar sonido de ambiente">🌌 Silencio</div>
-                <div id="menu-sonidos" class="filter-dropdown" style="display: none; left: 50%; transform: translateX(-50%); width: 160px; top: 30px; z-index: 2000;">
-                    <strong>Fondo sonoro:</strong>
-                    <div class="profile-row p-1" onclick="cambiarSonido('Silencio', '', '🌌', 'theme-silencio')">🌌 Silencio</div>
-                    <div class="profile-row p-1" onclick="cambiarSonido('Lluvia', 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg', '🌧️', 'theme-lluvia')">🌧️ Lluvia</div>
-                    <div class="profile-row p-1" onclick="cambiarSonido('Bosque', 'https://actions.google.com/sounds/v1/nature/forest_ambience.ogg', '🌲', 'theme-bosque')">🌲 Bosque</div>
-                    <div class="profile-row p-1" onclick="cambiarSonido('Fuego', 'https://actions.google.com/sounds/v1/ambiences/fire.ogg', '🔥', 'theme-fuego')">🔥 Fuego chimenea</div>
-                    <div class="profile-row p-1" onclick="cambiarSonido('Olas mar', 'https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg', '🌊', 'theme-olas')">🌊 Olas del mar</div>
-                </div>
-            </div>
-
-            <audio id="bg-audio" loop></audio>
-
-            <div id="pomodoro-time" class="timer-display">25:00</div>
-            <div class="timer-buttons">
-                <button class="t-btn active" onclick="cambiarModoTimer(25, this)">pomodoro</button>
-                <button class="t-btn" onclick="cambiarModoTimer(5, this)">descanso corto</button>
-                <button class="t-btn" onclick="cambiarModoTimer(15, this)">descanso largo</button>
-            </div>
-            <div class="timer-controls">
-                <button id="btn-start-timer" class="c-btn">iniciar</button>
-                <button id="btn-reset-timer" class="c-btn">reiniciar</button>
-            </div>
-        </div>
-
-        <div class="widget">
-            <div class="widget-header">📝 Temas recientes</div>
-            <div class="widget-content p-0">
-                <ul class="clean-list topics-list" id="lista-temas-recientes" style="padding: 15px 15px 0 15px;">
-                </ul>
-                <div style="padding: 0 15px 15px 15px;">
-                    <div class="new-page-btn" onclick="agregarTema()">+ Añadir tema</div>
-                </div>
-            </div>
-        </div>
-
-        <img src="https://images.unsplash.com/photo-1542332213-31f87348057f?w=400" alt="Paisaje lofi de estudio" class="sidebar-img">
-
-    </aside>
-
-    <div class="widget col-full">
-        <div class="widget-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <span title="Haz clic en cualquier objetivo para editar su texto">🎯 Mis objetivos académicos</span>
-            <button class="t-btn-new" onclick="agregarBloqueObjetivo()">+ Nuevo Bloque</button>
-        </div>
-        <div class="widget-content goals-grid" style="align-items: flex-start; flex-wrap: wrap;">
-            <div class="goal-stats" id="objetivos-stats">
-            </div>
-            <div id="objetivos-bloques" style="display: flex; flex: 1; gap: 20px; flex-wrap: wrap;">
-            </div>
-        </div>
-    </div>
-
-    <div class="widget col-full">
-        <div class="widget-header">📅 Vista Mensual del Calendario</div>
-        <div class="widget-content p-0" style="padding-top: 15px;">
-
-            <div class="notion-toolbar" style="padding: 0 15px;">
-                <div class="toolbar-left" id="tabs-calendario">
-                    <button class="t-tab active" onclick="cambiarFiltroCalendario('todo')"><span class="icon">⊞</span> Todo</button>
-                    <button class="t-tab" onclick="cambiarFiltroCalendario('apuntes')"><span class="icon">🗒️</span> Apuntes</button>
-                    <button class="t-tab" onclick="cambiarFiltroCalendario('tareas')"><span class="icon">✅</span> Tareas</button>
-                    <button class="t-tab" onclick="cambiarFiltroCalendario('entregas')"><span class="icon">🎯</span> Entregas</button>
-                </div>
-                <div class="toolbar-right">
-
-                    <div class="icon-wrapper">
-                        <span class="t-icon" id="icon-filter-calendario" onclick="toggleMenu('filtro-calendario')" title="Filtrar">≡</span>
-                        <div id="filtro-calendario" class="filter-dropdown" style="display: none;">
-                            <strong>Mostrar:</strong>
-                            <label><input type="checkbox" value="tareas" checked onchange="dibujarCalendario()"> Tareas</label>
-                            <label><input type="checkbox" value="entregas" checked onchange="dibujarCalendario()"> Entregas</label>
-                            <label><input type="checkbox" value="apuntes" checked onchange="dibujarCalendario()"> Apuntes</label>
-                        </div>
-                    </div>
-
-                    <span class="t-icon" id="icon-sort-calendario" onclick="toggleOrdenDireccionCalendario()" title="Invertir celdas">⇅</span>
-
-                    <div class="icon-wrapper">
-                        <span class="t-icon" onclick="toggleMenu('auto-calendario')" title="Automatizaciones">⚡</span>
-                        <div id="auto-calendario" class="filter-dropdown" style="display: none; width: 170px;">
-                            <div class="profile-row p-1" onclick="mostrarToast('Sincronizando Google Cal...')">🔄 Sincronizar G. Calendar</div>
-                        </div>
-                    </div>
-
-                    <span class="t-icon" title="Buscar" onclick="mostrarToast('Buscar en calendario')">🔍</span>
-                    <span class="t-icon" title="Pantalla Completa" onclick="toggleFullscreen(this)">⤢</span>
-
-                    <div class="icon-wrapper">
-                        <span class="t-icon" onclick="toggleMenu('opt-calendario')" title="Opciones">⋯</span>
-                        <div id="opt-calendario" class="filter-dropdown" style="display: none; width: 140px;">
-                            <div class="profile-row p-1" onclick="mostrarToast('Exportando PDF...')">📥 Exportar PDF</div>
-                        </div>
-                    </div>
-
-                    <button class="t-btn-new" onclick="abrirModalSelectorUniversal()">Nuevo ⌄</button>
-                </div>
-            </div>
-
-            <div class="month-nav-bar" style="border-top: none; padding-top: 0;">
-                <span id="texto-mes-calendario" style="font-weight: 600;">Cargando...</span>
-                <div class="month-arrows">
-                    <span onclick="cambiarMesCalendario(-1)">&lt;</span>
-                    <span onclick="cambiarMesCalendario(0)">Hoy</span>
-                    <span onclick="cambiarMesCalendario(1)">&gt;</span>
-                </div>
-            </div>
-
-            <div class="cal-header-row">
-                <div>Lunes</div><div>Martes</div><div>Miércoles</div><div>Jueves</div><div>Viernes</div><div>Sábado</div><div>Domingo</div>
-            </div>
-
-            <div class="cal-grid" id="grid-calendario-mysql">
-            </div>
-        </div>
-    </div>
 </div>
 
-<div id="modal-nueva-tarea" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Crear nueva tarea</h3>
-            <button class="close-modal-btn" onclick="cerrarModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="text" id="input-tarea-titulo" placeholder="Título de la tarea..." class="notion-input">
-            <input type="date" id="input-tarea-fecha" class="notion-input">
-            <button class="t-btn-new submit-btn" onclick="guardarNuevaTarea()">Guardar Tarea</button>
-        </div>
-    </div>
-</div>
+<style>
+    /* Pequeña animación para suavizar los cambios de pantalla */
+    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 
-<div id="modal-nueva-asignatura" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Añadir asignatura</h3>
-            <button class="close-modal-btn" onclick="cerrarModalAsignatura()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="text" id="input-asig-nombre" placeholder="Nombre (ej. Acceso a Datos)" class="notion-input">
-            <input type="text" id="input-asig-profesor" placeholder="Profesor" class="notion-input">
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="input-asig-tag1" placeholder="Tag 1 (ej. 2º Año)" class="notion-input" style="flex: 1;">
-                <input type="text" id="input-asig-tag2" placeholder="Tag 2 (ej. 1º Sem)" class="notion-input" style="flex: 1;">
-            </div>
-            <label class="modal-label-sub">Portada: Dirección URL o Ruta Local</label>
-            <input type="text" id="input-asig-imagen" placeholder="https://... o carpeta/imagen.png" class="notion-input">
-            <label class="modal-label-sub">O subir archivo local de imagen</label>
-            <input type="file" id="input-asig-archivo-local" class="notion-input" accept="image/*" onchange="convertirImagenABase64(this, 'input-asig-imagen')">
-            <button class="t-btn-new submit-btn" onclick="guardarNuevaAsignatura()">Guardar Asignatura</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-cambiar-portada" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Actualizar portada</h3>
-            <button class="close-modal-btn" onclick="cerrarModalPortada()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="input-portada-asig-id">
-            <label class="modal-label-sub">Opción 1: Enlace URL o Ruta Local</label>
-            <input type="text" id="input-portada-url" placeholder="https://... o img/portada.jpg" class="notion-input">
-            <label class="modal-label-sub">Opción 2: Cargar archivo local</label>
-            <input type="file" id="input-portada-archivo" class="notion-input" accept="image/*" onchange="convertirImagenABase64(this, 'input-portada-url')">
-            <button class="t-btn-new submit-btn" onclick="guardarNuevaPortada()">Actualizar Portada</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-nueva-entrega" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Añadir entrega / examen</h3>
-            <button class="close-modal-btn" onclick="cerrarModalEntrega()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="text" id="input-entrega-titulo" placeholder="Título (ej. Proyecto Final)" class="notion-input">
-            <label class="modal-label-sub">Tipo de entrega:</label>
-            <select id="input-entrega-tipo" class="notion-input" style="color: white; background: #252525;">
-                <option value="Proyecto">Proyecto</option>
-                <option value="Examen">Examen</option>
-                <option value="Práctica">Práctica</option>
-                <option value="Deberes">Deberes</option>
-                <option value="Presentación">Presentación</option>
-            </select>
-            <label class="modal-label-sub">Estado actual:</label>
-            <select id="input-entrega-estado" class="notion-input" style="color: white; background: #252525;">
-                <option value="Pendiente">Pendiente</option>
-                <option value="En progreso">En progreso</option>
-                <option value="Planeado">Planeado</option>
-                <option value="Completado">Completado</option>
-            </select>
-            <label class="modal-label-sub">Fecha Límite:</label>
-            <input type="date" id="input-entrega-fecha" class="notion-input">
-            <button class="t-btn-new submit-btn" onclick="guardarNuevaEntrega()">Guardar Entrega</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-nuevo-apunte" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Añadir apunte de clase</h3>
-            <button class="close-modal-btn" onclick="cerrarModalApunte()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="text" id="input-apunte-titulo" placeholder="Tema (ej. Conexiones JDBC)" class="notion-input">
-            <input type="text" id="input-apunte-asignatura" placeholder="Asignatura (ej. Acceso a Datos)" class="notion-input">
-            <label class="modal-label-sub">Color de la viñeta:</label>
-            <select id="input-apunte-color" class="notion-input" style="color: white; background: #252525;">
-                <option value="blue">Azul</option>
-                <option value="red">Rojo</option>
-                <option value="yellow">Amarillo</option>
-                <option value="green">Verde</option>
-                <option value="gray">Gris</option>
-            </select>
-            <label class="modal-label-sub">Fecha del apunte:</label>
-            <input type="date" id="input-apunte-fecha" class="notion-input">
-            <button class="t-btn-new submit-btn" onclick="guardarNuevoApunte()">Guardar Apunte</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-selector-universal" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="width: 300px;">
-        <div class="modal-header">
-            <h3>¿Qué deseas crear?</h3>
-            <button class="close-modal-btn" onclick="cerrarModalSelectorUniversal()">&times;</button>
-        </div>
-        <div class="modal-body" style="gap: 5px; padding: 10px;">
-            <div class="profile-row" onclick="seleccionarTipoEventoUniversal('asignatura')" style="cursor:pointer; display:flex; align-items:center; gap:10px;">
-                <span class="icon">📚</span> <strong>Nueva Asignatura</strong>
-            </div>
-            <div class="profile-row" onclick="seleccionarTipoEventoUniversal('tarea')" style="cursor:pointer; display:flex; align-items:center; gap:10px;">
-                <span class="icon">✅</span> <strong>Nueva Tarea</strong>
-            </div>
-            <div class="profile-row" onclick="seleccionarTipoEventoUniversal('entrega')" style="cursor:pointer; display:flex; align-items:center; gap:10px;">
-                <span class="icon">🎯</span> <strong>Nueva Entrega</strong>
-            </div>
-            <div class="profile-row" onclick="seleccionarTipoEventoUniversal('apunte')" style="cursor:pointer; display:flex; align-items:center; gap:10px;">
-                <span class="icon">🗒️</span> <strong>Nuevo Apunte</strong>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="toast-container" class="toast-container"></div>
-<script src="app.js?v=all-features"></script>
+<script src="app.js"></script>
 </body>
 </html>
