@@ -252,3 +252,163 @@ window.actualizarUI = function() {
 
 // Dibujar horario inicial
 renderizarHorario();
+
+// ==========================================
+// LÓGICA DEL MÓDULO DE CALIFICACIONES
+// ==========================================
+
+// Asegurar que el array de asignaturas existe
+if (!appData.asignaturas) {
+    appData.asignaturas = [];
+    guardarDatos();
+}
+
+const formAsignaturaNotas = document.getElementById('form-asignatura-notas');
+const inputNombreAsignatura = document.getElementById('input-nombre-asignatura');
+const contenedorAsignaturas = document.getElementById('contenedor-asignaturas');
+
+// Crear una nueva asignatura para registrar notas
+if (formAsignaturaNotas) {
+    formAsignaturaNotas.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nombre = inputNombreAsignatura.value.trim();
+        if (!nombre) return;
+
+        appData.asignaturas.push({
+            id: Date.now(),
+            nombre: nombre,
+            notas: [] // Array para guardar los exámenes/trabajos
+        });
+
+        inputNombreAsignatura.value = '';
+        guardarDatos();
+    });
+}
+
+// Dibujar las tarjetas de calificaciones
+function renderizarCalificaciones() {
+    if (!contenedorAsignaturas) return;
+    contenedorAsignaturas.innerHTML = '';
+
+    if (appData.asignaturas.length === 0) {
+        contenedorAsignaturas.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-100">No hay asignaturas. Añade una arriba para empezar a registrar tus notas.</div>';
+        return;
+    }
+
+    appData.asignaturas.forEach(asig => {
+        // Calcular la media ponderada actual
+        let sumaPesos = 0;
+        let sumaNotas = 0;
+
+        asig.notas.forEach(n => {
+            const peso = parseFloat(n.peso);
+            const valor = parseFloat(n.valor);
+            sumaPesos += peso;
+            sumaNotas += valor * peso;
+        });
+
+        // Media sobre lo evaluado hasta ahora
+        let media = sumaPesos > 0 ? (sumaNotas / sumaPesos).toFixed(2) : '0.00';
+
+        // Color de la media según la nota (>= 5 verde, < 5 rojo)
+        let colorMedia = media >= 5 ? 'text-green-600' : (media > 0 ? 'text-red-500' : 'text-slate-400');
+
+        // Generar lista HTML de notas
+        let htmlNotas = '';
+        asig.notas.forEach(n => {
+            let colorNota = n.valor >= 5 ? 'text-green-600' : 'text-red-500';
+            htmlNotas += `
+                <div class="flex justify-between items-center py-2 px-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 rounded transition">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-700">${n.nombre}</p>
+                        <p class="text-xs text-slate-400">Peso: ${n.peso}%</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-bold ${colorNota}">${n.valor}</span>
+                        <button onclick="eliminarNota(${asig.id}, ${n.id})" class="text-slate-300 hover:text-red-500 transition" title="Borrar nota">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Generar tarjeta HTML
+        const div = document.createElement('div');
+        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full';
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-4 pb-4 border-b border-slate-100">
+                <h3 class="text-xl font-bold text-slate-800">${asig.nombre}</h3>
+                <div class="text-right ml-4">
+                    <span class="block text-3xl font-black ${colorMedia} leading-none">${media}</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nota Media</span>
+                </div>
+            </div>
+            
+            <div class="flex-1 mb-6">
+                ${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">No hay notas registradas aún.</p>'}
+            </div>
+
+            <div class="mt-auto pt-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl border-t border-slate-100">
+                <form onsubmit="agregarNota(event, ${asig.id})" class="flex gap-2">
+                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Examen T1" required class="w-1/2 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
+                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
+                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
+                    <button type="submit" class="bg-yellow-500 text-white px-3 rounded hover:bg-yellow-600 transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </form>
+                <div class="mt-4 text-right">
+                    <button onclick="eliminarAsignatura(${asig.id})" class="text-xs text-red-400 hover:text-red-600 font-medium transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Borrar asignatura entera
+                    </button>
+                </div>
+            </div>
+        `;
+        contenedorAsignaturas.appendChild(div);
+    });
+}
+
+// Funciones globales para manejar los clicks
+window.agregarNota = function(e, idAsig) {
+    e.preventDefault();
+    const inputNombre = document.getElementById(`nota-nombre-${idAsig}`);
+    const inputValor = document.getElementById(`nota-valor-${idAsig}`);
+    const inputPeso = document.getElementById(`nota-peso-${idAsig}`);
+
+    const asig = appData.asignaturas.find(a => a.id === idAsig);
+    if(asig) {
+        asig.notas.push({
+            id: Date.now(),
+            nombre: inputNombre.value,
+            valor: parseFloat(inputValor.value),
+            peso: parseFloat(inputPeso.value)
+        });
+        guardarDatos(); // Esto autoguarda y recarga la UI
+    }
+}
+
+window.eliminarNota = function(idAsig, idNota) {
+    const asig = appData.asignaturas.find(a => a.id === idAsig);
+    if(asig) {
+        asig.notas = asig.notas.filter(n => n.id !== idNota);
+        guardarDatos();
+    }
+}
+
+window.eliminarAsignatura = function(idAsig) {
+    if(confirm("¿Seguro que quieres borrar esta asignatura y TODAS sus notas?")) {
+        appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
+        guardarDatos();
+    }
+}
+
+// Conectar con el renderizador maestro (actualizarUI)
+const uiConHorario = window.actualizarUI;
+window.actualizarUI = function() {
+    if (typeof uiConHorario === 'function') uiConHorario();
+    renderizarCalificaciones();
+}
+
+// Ejecutar el renderizado inicial de calificaciones
+renderizarCalificaciones();

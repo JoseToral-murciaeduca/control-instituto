@@ -30,6 +30,9 @@
             <button onclick="cambiarSeccion('horario')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
                 <i class="fa-solid fa-calendar-days w-6 text-purple-400"></i> Horario
             </button>
+            <button onclick="cambiarSeccion('calificaciones')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+                <i class="fa-solid fa-star w-6 text-yellow-400"></i> Calificaciones
+            </button>
         </nav>
         <div class="p-4 text-xs text-slate-500 text-center border-t border-slate-800">
             <i class="fa-solid fa-hard-drive mr-1"></i> Datos locales
@@ -104,6 +107,29 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- SECCIÓN: CALIFICACIONES -->
+            <section id="calificaciones" class="seccion-app hidden animate-fade-in">
+                <h2 class="text-3xl font-bold text-slate-800 mb-8">Mis Calificaciones</h2>
+
+                <!-- Formulario para nueva asignatura -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                    <form id="form-asignatura-notas" class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Nombre de la Asignatura</label>
+                            <input type="text" id="input-nombre-asignatura" required placeholder="Ej. Acceso a Datos, Desarrollo de Interfaces..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                        </div>
+                        <button type="submit" class="w-full md:w-auto bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition font-medium shadow-md">
+                            <i class="fa-solid fa-folder-plus mr-2"></i>Añadir Asignatura
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Contenedor donde aparecerán las tarjetas de cada asignatura -->
+                <div id="contenedor-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- JS inyectará las asignaturas y sus notas aquí -->
+                </div>
+            </section>
 
             <!-- Modal Flotante para Añadir/Editar Asignatura -->
             <div id="modal-horario" class="fixed inset-0 bg-slate-900 bg-opacity-40 hidden flex items-center justify-center z-50 backdrop-blur-sm transition-opacity">
