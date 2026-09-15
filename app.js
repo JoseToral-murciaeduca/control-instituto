@@ -3,182 +3,181 @@
 // ==========================================
 const STORAGE_KEY = 'control_instituto_db';
 
-// Intentamos cargar datos previos. Si es la primera vez, creamos una estructura vacía.
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-    tareas: []
+    tareas: [],
+    asignaturas: [] // Ahora este es el núcleo del programa
 };
 
-// Función maestra para guardar cualquier cambio
+// Migración de seguridad por si tenías datos antiguos
+appData.asignaturas.forEach(asig => {
+    if (!asig.notas) asig.notas = [];
+    if (!asig.sesiones) asig.sesiones = [];
+    if (!asig.color) asig.color = '#3b82f6';
+    if (!asig.profesor) asig.profesor = '';
+    if (!asig.enlace) asig.enlace = '';
+});
+
 function guardarDatos() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    actualizarUI(); // Refresca la pantalla automáticamente al guardar
+    actualizarUI();
 }
 
-
 // ==========================================
-// NAVEGACIÓN ENTRE SECCIONES
+// NAVEGACIÓN
 // ==========================================
 function cambiarSeccion(idSeccion) {
-    // 1. Ocultar todas
-    document.querySelectorAll('.seccion-app').forEach(sec => {
-        sec.classList.add('hidden');
-    });
-    // 2. Mostrar la solicitada
+    document.querySelectorAll('.seccion-app').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(idSeccion).classList.remove('hidden');
 }
 
-
 // ==========================================
-// LÓGICA DEL MÓDULO DE TAREAS
+// 1. MÓDULO CENTRAL: GESTIÓN DE ASIGNATURAS
 // ==========================================
-const formTarea = document.getElementById('form-tarea');
-const listaTareas = document.getElementById('lista-tareas');
-const dashPendientes = document.getElementById('dash-pendientes');
+const formCrearAsignatura = document.getElementById('form-crear-asignatura');
 
-// Capturar el envío del formulario
-formTarea.addEventListener('submit', (e) => {
-    e.preventDefault(); // Evita que la página se recargue
+if (formCrearAsignatura) {
+    formCrearAsignatura.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nuevaAsig = {
+            id: Date.now(),
+            nombre: document.getElementById('asig-nombre').value.trim(),
+            profesor: document.getElementById('asig-profesor').value.trim(),
+            enlace: document.getElementById('asig-enlace').value.trim(),
+            color: document.getElementById('asig-color').value,
+            notas: [],
+            sesiones: [] // Aquí se guardarán los días y horas
+        };
+        appData.asignaturas.push(nuevaAsig);
+        formCrearAsignatura.reset();
+        guardarDatos();
+    });
+}
 
-    const titulo = document.getElementById('input-tarea').value;
-    const asignatura = document.getElementById('input-asignatura').value;
+function renderizarConfigAsignaturas() {
+    const contenedor = document.getElementById('contenedor-config-asignaturas');
+    if (!contenedor) return;
+    contenedor.innerHTML = '';
 
-    // Crear objeto tarea
-    const nuevaTarea = {
-        id: Date.now(), // ID único basado en la hora actual
-        titulo: titulo,
-        asignatura: asignatura,
-        completada: false
-    };
+    if (appData.asignaturas.length === 0) {
+        contenedor.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-100">Crea tu primera asignatura arriba para empezar.</div>';
+        return;
+    }
 
-    // Añadir al array de datos y guardar
-    appData.tareas.push(nuevaTarea);
-    formTarea.reset(); // Limpiar inputs
-    guardarDatos();
-});
+    appData.asignaturas.forEach(asig => {
+        // Generar lista de sesiones (Horario)
+        let htmlSesiones = '';
+        asig.sesiones.forEach((sesion, index) => {
+            htmlSesiones += `
+                <div class="flex justify-between items-center text-sm p-2 bg-slate-50 rounded mt-1 border border-slate-100">
+                    <span class="capitalize font-medium"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} - ${sesion.hora}ª Hora</span>
+                    <button onclick="borrarSesion(${asig.id}, ${index})" class="text-red-400 hover:text-red-600 transition"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `;
+        });
 
-// Marcar/Desmarcar tarea como completada
-window.toggleTarea = function(id) {
-    const tarea = appData.tareas.find(t => t.id === id);
-    if (tarea) {
-        tarea.completada = !tarea.completada;
+        // Crear la tarjeta de la asignatura
+        const div = document.createElement('div');
+        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden';
+        div.innerHTML = `
+            <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
+            <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">${asig.nombre}</h3>
+                    ${asig.profesor ? `<p class="text-sm text-slate-500 mt-1"><i class="fa-solid fa-chalkboard-user mr-1"></i>${asig.profesor}</p>` : ''}
+                    ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-sm text-blue-500 hover:underline mt-1 inline-block"><i class="fa-solid fa-video mr-1"></i>Enlace de clase</a>` : ''}
+                </div>
+                <button onclick="eliminarAsignaturaMaster(${asig.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition bg-red-50" title="Borrar asignatura completa">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1">
+                <h4 class="text-xs font-bold uppercase text-slate-400 mb-2">Bloques de Horario</h4>
+                ${htmlSesiones || '<p class="text-xs text-slate-400 italic">No tiene horario asignado.</p>'}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <form onsubmit="agregarSesion(event, ${asig.id})" class="flex gap-2">
+                    <select id="dia-${asig.id}" required class="w-1/2 p-2 text-sm border border-slate-200 rounded">
+                        <option value="lunes">Lunes</option>
+                        <option value="martes">Martes</option>
+                        <option value="miercoles">Miércoles</option>
+                        <option value="jueves">Jueves</option>
+                        <option value="viernes">Viernes</option>
+                    </select>
+                    <select id="hora-${asig.id}" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
+                        <option value="1">1ª Hora</option><option value="2">2ª Hora</option><option value="3">3ª Hora</option>
+                        <option value="4">4ª Hora</option><option value="5">5ª Hora</option><option value="6">6ª Hora</option>
+                    </select>
+                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700 transition" title="Añadir bloque al horario">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </form>
+            </div>
+        `;
+        contenedor.appendChild(div);
+    });
+}
+
+window.agregarSesion = function(e, idAsig) {
+    e.preventDefault();
+    const dia = document.getElementById(`dia-${idAsig}`).value;
+    const hora = parseInt(document.getElementById(`hora-${idAsig}`).value);
+
+    const asig = appData.asignaturas.find(a => a.id === idAsig);
+    if(asig) {
+        // Evitar duplicados exactos
+        if(!asig.sesiones.some(s => s.dia === dia && s.hora === hora)) {
+            asig.sesiones.push({ dia, hora });
+            guardarDatos();
+        }
+    }
+}
+
+window.borrarSesion = function(idAsig, indexSesion) {
+    const asig = appData.asignaturas.find(a => a.id === idAsig);
+    if(asig) {
+        asig.sesiones.splice(indexSesion, 1);
         guardarDatos();
     }
 }
 
-// Eliminar tarea permanentemente
-window.eliminarTarea = function(id) {
-    // Filtramos para quedarnos con todas menos la que coincide con el ID
-    appData.tareas = appData.tareas.filter(t => t.id !== id);
-    guardarDatos();
-}
-
-
-// ==========================================
-// RENDERIZADO VISUAL (Actualizar la pantalla)
-// ==========================================
-function actualizarUI() {
-    listaTareas.innerHTML = '';
-    let pendientes = 0;
-
-    // Si no hay tareas, mostrar mensaje amigable
-    if (appData.tareas.length === 0) {
-        listaTareas.innerHTML = '<li class="p-8 text-center text-slate-500">No tienes tareas pendientes. ¡Buen trabajo!</li>';
+window.eliminarAsignaturaMaster = function(idAsig) {
+    if(confirm("⚠️ ¿Borrar asignatura? Se eliminará del horario y se perderán sus calificaciones. (Las tareas pendientes se mantendrán)")) {
+        appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
+        guardarDatos();
     }
-
-    // Recorrer las tareas guardadas y generar el HTML
-    appData.tareas.forEach(tarea => {
-        if (!tarea.completada) pendientes++;
-
-        const li = document.createElement('li');
-        li.className = `p-4 flex items-center justify-between transition-all ${tarea.completada ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50'}`;
-
-        li.innerHTML = `
-            <div class="flex items-center gap-4">
-                <input type="checkbox" ${tarea.completada ? 'checked' : ''} 
-                       onchange="toggleTarea(${tarea.id})" 
-                       class="h-6 w-6 text-blue-600 rounded border-slate-300 cursor-pointer">
-                <div>
-                    <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-lg">
-                        ${tarea.titulo}
-                    </p>
-                    <p class="text-sm text-slate-500 mt-1">
-                        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide">
-                            ${tarea.asignatura}
-                        </span>
-                    </p>
-                </div>
-            </div>
-            <button onclick="eliminarTarea(${tarea.id})" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Eliminar tarea">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-        `;
-        listaTareas.appendChild(li);
-    });
-
-    // Actualizar el número del dashboard principal
-    dashPendientes.textContent = pendientes;
 }
 
-// Arrancar la aplicación la primera vez que carga
-actualizarUI();
-cambiarSeccion('dashboard');
-
 // ==========================================
-// LÓGICA DEL MÓDULO DE HORARIO
+// 2. HORARIO AUTOMÁTICO (Solo lectura)
 // ==========================================
-
-// Asegurarnos de que el objeto horario existe en la base de datos local
-if (!appData.horario) {
-    appData.horario = {};
-    guardarDatos();
-}
-
-const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
-const periodosClase = 6; // Configurado para 6 horas al día
-const tablaHorario = document.getElementById('tabla-horario');
-
-// Referencias a los elementos del Modal
-const modalHorario = document.getElementById('modal-horario');
-const inputModalDia = document.getElementById('modal-dia');
-const inputModalHora = document.getElementById('modal-hora');
-const inputModalAsignatura = document.getElementById('modal-input-asignatura');
-const inputModalColor = document.getElementById('modal-input-color');
-const modalTitulo = document.getElementById('modal-titulo');
-const btnEliminarHorario = document.getElementById('btn-eliminar-horario');
-
-// Construir la tabla del horario en pantalla
-function renderizarHorario() {
+function renderizarHorarioAuto() {
+    const tablaHorario = document.getElementById('tabla-horario');
     if (!tablaHorario) return;
     tablaHorario.innerHTML = '';
+    const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 
-    for (let hora = 1; hora <= periodosClase; hora++) {
+    for (let hora = 1; hora <= 6; hora++) {
         const fila = document.createElement('tr');
+        let htmlFila = `<td class="border border-slate-200 bg-slate-50 font-bold text-slate-400 text-center align-middle">${hora}ª</td>`;
 
-        // Primera columna: Número de hora
-        let htmlFila = `<td class="border border-slate-200 bg-slate-50 font-bold text-slate-400 text-center">${hora}ª</td>`;
+        dias.forEach(dia => {
+            // Buscar si alguna asignatura tiene configurado este día y hora
+            const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === hora));
 
-        // Columnas de los días
-        diasSemana.forEach(dia => {
-            const idCelda = `${dia}-${hora}`;
-            const datosAsignatura = appData.horario[idCelda];
+            if (asigEncontrada) {
+                const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-xs bg-white bg-opacity-50 text-slate-700 py-1 rounded hover:bg-white transition" title="Abrir clase"><i class="fa-solid fa-video text-blue-600"></i> Entrar</a>` : '';
 
-            if (datosAsignatura) {
-                // Celda con datos guardados
                 htmlFila += `
-                    <td onclick="abrirModalHorario('${dia}', ${hora})" 
-                        class="border border-slate-200 p-2 h-20 cursor-pointer hover:opacity-80 transition-opacity text-center relative overflow-hidden"
-                        style="background-color: ${datosAsignatura.color}15;">
-                        <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${datosAsignatura.color}"></div>
-                        <span class="font-semibold text-sm" style="color: ${datosAsignatura.color}">
-                            ${datosAsignatura.asignatura}
-                        </span>
+                    <td class="border border-slate-200 p-2 h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
+                        <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${asigEncontrada.color}"></div>
+                        <span class="font-bold text-sm block" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
+                        <span class="text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
+                        ${iconoMeet}
                     </td>`;
             } else {
-                // Celda vacía
-                htmlFila += `
-                    <td onclick="abrirModalHorario('${dia}', ${hora})" 
-                        class="border border-slate-200 border-dashed p-2 h-20 cursor-pointer hover:bg-slate-50 transition-colors">
-                    </td>`;
+                htmlFila += `<td class="border border-slate-200 border-dashed p-2 h-24 text-center align-middle"><span class="text-slate-300 text-xs">Libre</span></td>`;
             }
         });
 
@@ -187,299 +186,205 @@ function renderizarHorario() {
     }
 }
 
-// Interacción con el Modal
-window.abrirModalHorario = function(dia, hora) {
-    const idCelda = `${dia}-${hora}`;
-    const datosAsignatura = appData.horario[idCelda];
-
-    inputModalDia.value = dia;
-    inputModalHora.value = hora;
-
-    if (datosAsignatura) {
-        modalTitulo.textContent = 'Editar Asignatura';
-        inputModalAsignatura.value = datosAsignatura.asignatura;
-        inputModalColor.value = datosAsignatura.color;
-        btnEliminarHorario.classList.remove('hidden');
-    } else {
-        modalTitulo.textContent = 'Añadir a 1ª Hora' .replace('1', hora);
-        inputModalAsignatura.value = '';
-        inputModalColor.value = '#a855f7'; // Color predeterminado (Morado Tailwind)
-        btnEliminarHorario.classList.add('hidden');
-    }
-
-    modalHorario.classList.remove('hidden');
-    setTimeout(() => inputModalAsignatura.focus(), 100);
-}
-
-window.cerrarModalHorario = function() {
-    modalHorario.classList.add('hidden');
-}
-
-window.guardarCeldaHorario = function() {
-    const dia = inputModalDia.value;
-    const hora = inputModalHora.value;
-    const asignatura = inputModalAsignatura.value.trim();
-    const color = inputModalColor.value;
-
-    if (asignatura === '') return; // No guardar si está vacío
-
-    const idCelda = `${dia}-${hora}`;
-    appData.horario[idCelda] = { asignatura, color };
-
-    guardarDatos();
-    renderizarHorario();
-    cerrarModalHorario();
-}
-
-window.eliminarCeldaHorario = function() {
-    const dia = inputModalDia.value;
-    const hora = inputModalHora.value;
-    const idCelda = `${dia}-${hora}`;
-
-    delete appData.horario[idCelda];
-
-    guardarDatos();
-    renderizarHorario();
-    cerrarModalHorario();
-}
-
-// Conectar con el sistema de guardado original sin modificar su código base
-const uiOriginal = window.actualizarUI;
-window.actualizarUI = function() {
-    if (typeof uiOriginal === 'function') uiOriginal();
-    renderizarHorario();
-}
-
-// Dibujar horario inicial
-renderizarHorario();
-
 // ==========================================
-// LÓGICA DEL MÓDULO DE CALIFICACIONES
+// 3. TAREAS (Actualizadas con Desplegable)
 // ==========================================
+const formTarea = document.getElementById('form-tarea');
 
-// Asegurar que el array de asignaturas existe
-if (!appData.asignaturas) {
-    appData.asignaturas = [];
-    guardarDatos();
-}
-
-const formAsignaturaNotas = document.getElementById('form-asignatura-notas');
-const inputNombreAsignatura = document.getElementById('input-nombre-asignatura');
-const contenedorAsignaturas = document.getElementById('contenedor-asignaturas');
-
-// Crear una nueva asignatura para registrar notas
-if (formAsignaturaNotas) {
-    formAsignaturaNotas.addEventListener('submit', (e) => {
+if(formTarea) {
+    formTarea.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nombre = inputNombreAsignatura.value.trim();
-        if (!nombre) return;
-
-        appData.asignaturas.push({
+        appData.tareas.push({
             id: Date.now(),
-            nombre: nombre,
-            notas: [] // Array para guardar los exámenes/trabajos
+            titulo: document.getElementById('input-tarea').value,
+            asignatura: document.getElementById('input-asignatura').value, // Ahora coge el valor del select
+            completada: false
         });
-
-        inputNombreAsignatura.value = '';
+        formTarea.reset();
         guardarDatos();
     });
 }
 
-// Dibujar las tarjetas de calificaciones
+function renderizarTareas() {
+    const listaTareas = document.getElementById('lista-tareas');
+    const selectAsig = document.getElementById('input-asignatura');
+    const dashPendientes = document.getElementById('dash-pendientes');
+    if (!listaTareas || !selectAsig) return;
+
+    // 1. Llenar el desplegable del formulario con las asignaturas maestras
+    selectAsig.innerHTML = '<option value="" disabled selected>Elige asignatura...</option>';
+    if(appData.asignaturas.length === 0) {
+        selectAsig.innerHTML += `<option value="General">General (Crea asignaturas en el menú)</option>`;
+    } else {
+        appData.asignaturas.forEach(a => {
+            selectAsig.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+        });
+    }
+
+    // 2. Pintar las tareas
+    listaTareas.innerHTML = '';
+    let pendientes = 0;
+
+    if (appData.tareas.length === 0) {
+        listaTareas.innerHTML = '<li class="p-8 text-center text-slate-500">No tienes tareas pendientes. ¡Buen trabajo!</li>';
+    }
+
+    appData.tareas.forEach(tarea => {
+        if (!tarea.completada) pendientes++;
+
+        // Buscar el color de la asignatura para ponerle la etiqueta bonita
+        const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
+        const colorEtiqueta = asigInfo ? asigInfo.color : '#94a3b8'; // Gris por defecto
+
+        const li = document.createElement('li');
+        li.className = `p-4 flex items-center justify-between transition-all ${tarea.completada ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50'}`;
+        li.innerHTML = `
+            <div class="flex items-center gap-4">
+                <input type="checkbox" ${tarea.completada ? 'checked' : ''} onchange="toggleTarea(${tarea.id})" class="h-6 w-6 text-blue-600 rounded cursor-pointer">
+                <div>
+                    <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-lg">${tarea.titulo}</p>
+                    <p class="text-sm mt-1">
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide text-white" style="background-color: ${colorEtiqueta}">
+                            ${tarea.asignatura}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            <button onclick="eliminarTarea(${tarea.id})" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can"></i></button>
+        `;
+        listaTareas.appendChild(li);
+    });
+    if(dashPendientes) dashPendientes.textContent = pendientes;
+}
+
+window.toggleTarea = function(id) {
+    const t = appData.tareas.find(t => t.id === id);
+    if (t) { t.completada = !t.completada; guardarDatos(); }
+}
+window.eliminarTarea = function(id) {
+    appData.tareas = appData.tareas.filter(t => t.id !== id);
+    guardarDatos();
+}
+
+// ==========================================
+// 4. CALIFICACIONES (Enlazadas)
+// ==========================================
 function renderizarCalificaciones() {
-    if (!contenedorAsignaturas) return;
-    contenedorAsignaturas.innerHTML = '';
+    const contenedor = document.getElementById('contenedor-asignaturas');
+    if (!contenedor) return;
+    contenedor.innerHTML = '';
 
     if (appData.asignaturas.length === 0) {
-        contenedorAsignaturas.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-100">No hay asignaturas. Añade una arriba para empezar a registrar tus notas.</div>';
+        contenedor.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-100">Crea tus asignaturas en la sección "Asignaturas" del menú lateral para poder añadirles notas.</div>';
         return;
     }
 
     appData.asignaturas.forEach(asig => {
-        // Calcular la media ponderada actual
-        let sumaPesos = 0;
-        let sumaNotas = 0;
-
-        asig.notas.forEach(n => {
-            const peso = parseFloat(n.peso);
-            const valor = parseFloat(n.valor);
-            sumaPesos += peso;
-            sumaNotas += valor * peso;
-        });
-
-        // Media sobre lo evaluado hasta ahora
+        let sumaPesos = 0; let sumaNotas = 0;
+        asig.notas.forEach(n => { sumaPesos += n.peso; sumaNotas += n.valor * n.peso; });
         let media = sumaPesos > 0 ? (sumaNotas / sumaPesos).toFixed(2) : '0.00';
-
-        // Color de la media según la nota (>= 5 verde, < 5 rojo)
         let colorMedia = media >= 5 ? 'text-green-600' : (media > 0 ? 'text-red-500' : 'text-slate-400');
 
-        // Generar lista HTML de notas
         let htmlNotas = '';
         asig.notas.forEach(n => {
             let colorNota = n.valor >= 5 ? 'text-green-600' : 'text-red-500';
             htmlNotas += `
-                <div class="flex justify-between items-center py-2 px-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 rounded transition">
-                    <div class="flex-1">
+                <div class="flex justify-between items-center py-2 px-3 hover:bg-slate-50 border-b border-slate-100 rounded">
+                    <div>
                         <p class="text-sm font-medium text-slate-700">${n.nombre}</p>
                         <p class="text-xs text-slate-400">Peso: ${n.peso}%</p>
                     </div>
                     <div class="flex items-center gap-4">
                         <span class="font-bold ${colorNota}">${n.valor}</span>
-                        <button onclick="eliminarNota(${asig.id}, ${n.id})" class="text-slate-300 hover:text-red-500 transition" title="Borrar nota">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                        <button onclick="eliminarNota(${asig.id}, ${n.id})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
 
-        // Generar tarjeta HTML
         const div = document.createElement('div');
-        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full';
+        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full relative overflow-hidden';
         div.innerHTML = `
-            <div class="flex justify-between items-start mb-4 pb-4 border-b border-slate-100">
+            <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
+            <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
                 <h3 class="text-xl font-bold text-slate-800">${asig.nombre}</h3>
                 <div class="text-right ml-4">
                     <span class="block text-3xl font-black ${colorMedia} leading-none">${media}</span>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nota Media</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Ponderada</span>
                 </div>
             </div>
-            
-            <div class="flex-1 mb-6">
-                ${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">No hay notas registradas aún.</p>'}
-            </div>
-
+            <div class="flex-1 mb-6">${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}</div>
             <div class="mt-auto pt-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl border-t border-slate-100">
                 <form onsubmit="agregarNota(event, ${asig.id})" class="flex gap-2">
-                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Examen T1" required class="w-1/2 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
-                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
-                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm bg-white border border-slate-200 rounded focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400">
-                    <button type="submit" class="bg-yellow-500 text-white px-3 rounded hover:bg-yellow-600 transition shadow-sm">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
+                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Examen 1" required class="w-1/2 p-2 text-sm border border-slate-200 rounded">
+                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm border border-slate-200 rounded">
+                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm border border-slate-200 rounded">
+                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700"><i class="fa-solid fa-plus"></i></button>
                 </form>
-                <div class="mt-4 text-right">
-                    <button onclick="eliminarAsignatura(${asig.id})" class="text-xs text-red-400 hover:text-red-600 font-medium transition">
-                        <i class="fa-solid fa-trash-can mr-1"></i> Borrar asignatura entera
-                    </button>
-                </div>
             </div>
         `;
-        contenedorAsignaturas.appendChild(div);
+        contenedor.appendChild(div);
     });
 }
 
-// Funciones globales para manejar los clicks
 window.agregarNota = function(e, idAsig) {
     e.preventDefault();
-    const inputNombre = document.getElementById(`nota-nombre-${idAsig}`);
-    const inputValor = document.getElementById(`nota-valor-${idAsig}`);
-    const inputPeso = document.getElementById(`nota-peso-${idAsig}`);
-
     const asig = appData.asignaturas.find(a => a.id === idAsig);
     if(asig) {
         asig.notas.push({
             id: Date.now(),
-            nombre: inputNombre.value,
-            valor: parseFloat(inputValor.value),
-            peso: parseFloat(inputPeso.value)
+            nombre: document.getElementById(`nota-nombre-${idAsig}`).value,
+            valor: parseFloat(document.getElementById(`nota-valor-${idAsig}`).value),
+            peso: parseFloat(document.getElementById(`nota-peso-${idAsig}`).value)
         });
-        guardarDatos(); // Esto autoguarda y recarga la UI
+        guardarDatos();
     }
 }
-
 window.eliminarNota = function(idAsig, idNota) {
     const asig = appData.asignaturas.find(a => a.id === idAsig);
-    if(asig) {
-        asig.notas = asig.notas.filter(n => n.id !== idNota);
-        guardarDatos();
-    }
+    if(asig) { asig.notas = asig.notas.filter(n => n.id !== idNota); guardarDatos(); }
 }
 
-window.eliminarAsignatura = function(idAsig) {
-    if(confirm("¿Seguro que quieres borrar esta asignatura y TODAS sus notas?")) {
-        appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
-        guardarDatos();
-    }
+// ==========================================
+// 5. IMPORTAR / EXPORTAR (Ajustes)
+// ==========================================
+window.exportarDatos = function() {
+    const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `control_instituto_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// Conectar con el renderizador maestro (actualizarUI)
-const uiConHorario = window.actualizarUI;
-window.actualizarUI = function() {
-    if (typeof uiConHorario === 'function') uiConHorario();
+window.procesarImportacion = function(event) {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+    const lector = new FileReader();
+    lector.onload = function(e) {
+        try {
+            const importado = JSON.parse(e.target.result);
+            if (importado && typeof importado === 'object' && confirm('⚠️ Esto sobrescribirá tus datos actuales. ¿Continuar?')) {
+                appData = importado;
+                guardarDatos();
+                alert('✅ Backup restaurado!');
+                cambiarSeccion('dashboard');
+            }
+        } catch (error) { alert('❌ Error. Archivo .json no válido.'); }
+        event.target.value = '';
+    };
+    lector.readAsText(archivo);
+}
+
+// ==========================================
+// RENDERIZADO MAESTRO
+// ==========================================
+function actualizarUI() {
+    renderizarConfigAsignaturas();
+    renderizarHorarioAuto();
+    renderizarTareas();
     renderizarCalificaciones();
 }
 
-// Ejecutar el renderizado inicial de calificaciones
-renderizarCalificaciones();
-
-// ==========================================
-// MÓDULO DE EXPORTACIÓN / IMPORTACIÓN
-// ==========================================
-
-// EXPORTAR: Convierte los datos a un archivo y fuerza la descarga
-window.exportarDatos = function() {
-    // 1. Convertir nuestro objeto appData a texto JSON con un formato legible (2 espacios)
-    const datosJSON = JSON.stringify(appData, null, 2);
-
-    // 2. Crear un "Blob" (un archivo de datos crudos en la memoria del navegador)
-    const blob = new Blob([datosJSON], { type: 'application/json' });
-
-    // 3. Crear una URL temporal que apunte a ese Blob
-    const url = URL.createObjectURL(blob);
-
-    // 4. Crear un enlace <a> invisible para forzar la descarga
-    const enlaceDescarga = document.createElement('a');
-    enlaceDescarga.href = url;
-
-    // Añadimos la fecha actual al nombre del archivo para mejor organización
-    const fecha = new Date().toISOString().split('T')[0];
-    enlaceDescarga.download = `control_instituto_backup_${fecha}.json`;
-
-    // 5. Simular el clic y hacer limpieza
-    document.body.appendChild(enlaceDescarga);
-    enlaceDescarga.click();
-    document.body.removeChild(enlaceDescarga);
-    URL.revokeObjectURL(url);
-}
-
-// IMPORTAR: Lee el archivo subido y sobrescribe los datos actuales
-window.procesarImportacion = function(event) {
-    const archivo = event.target.files[0];
-    if (!archivo) return; // Si el usuario cancela la ventana, no hacemos nada
-
-    // Usamos FileReader, una API del navegador para leer archivos locales
-    const lector = new FileReader();
-
-    lector.onload = function(e) {
-        try {
-            // Intentamos convertir el texto del archivo a un objeto JavaScript
-            const datosImportados = JSON.parse(e.target.result);
-
-            // Verificación básica para asegurar que no es un archivo vacío o erróneo
-            if (datosImportados && typeof datosImportados === 'object') {
-
-                // Pedimos confirmación porque esto borra lo actual
-                if (confirm('⚠️ ¿Estás seguro? Esta acción sobrescribirá todos los datos que tienes actualmente en la aplicación.')) {
-
-                    appData = datosImportados; // Sustituimos los datos
-                    guardarDatos(); // Guardamos en localStorage (y renderiza la UI)
-
-                    alert('✅ ¡Copia de seguridad restaurada con éxito!');
-                    cambiarSeccion('dashboard'); // Llevamos al usuario al inicio
-                }
-            } else {
-                alert('❌ El archivo no tiene un formato válido.');
-            }
-        } catch (error) {
-            alert('❌ Error al leer el archivo. Asegúrate de que es un .json válido de Control Instituto.');
-            console.error("Error de importación:", error);
-        }
-
-        // Vaciamos el input para que permita subir el mismo archivo de nuevo si fuera necesario
-        event.target.value = '';
-    };
-
-    // Leer el contenido del archivo como texto
-    lector.readAsText(archivo);
-}
+// ARRANQUE DE LA APP
+actualizarUI();
+cambiarSeccion('dashboard');
