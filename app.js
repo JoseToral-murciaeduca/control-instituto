@@ -388,3 +388,119 @@ function actualizarUI() {
 // ARRANQUE DE LA APP
 actualizarUI();
 cambiarSeccion('dashboard');
+
+// ==========================================
+// 6. DASHBOARD INTELIGENTE
+// ==========================================
+function renderizarDashboard() {
+    // 1. Calcular el día actual (0=Domingo, 1=Lunes...)
+    const diasJS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const diaHoy = diasJS[new Date().getDay()];
+
+    // Mostrar el día en el título (Si es finde, mostramos "Fin de semana")
+    const spanDia = document.getElementById('dash-dia-actual');
+    if(spanDia) spanDia.textContent = (diaHoy === 'sabado' || diaHoy === 'domingo') ? 'Fin de semana' : diaHoy;
+
+    // 2. RENDERIZAR CLASES DE HOY
+    const contenedorClases = document.getElementById('lista-clases-hoy');
+    const contadorClases = document.getElementById('dash-clases-hoy');
+
+    if (contenedorClases && contadorClases) {
+        let clasesHoy = [];
+
+        // Buscar clases que coincidan con el día de hoy
+        appData.asignaturas.forEach(asig => {
+            asig.sesiones.forEach(sesion => {
+                if (sesion.dia === diaHoy) {
+                    clasesHoy.push({ hora: sesion.hora, nombre: asig.nombre, color: asig.color, enlace: asig.enlace, profesor: asig.profesor });
+                }
+            });
+        });
+
+        // Ordenar las clases de 1ª hora a 6ª hora
+        clasesHoy.sort((a, b) => a.hora - b.hora);
+        contadorClases.textContent = clasesHoy.length;
+
+        if (clasesHoy.length === 0) {
+            contenedorClases.innerHTML = `<p class="text-slate-400 italic text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">No hay clases programadas para hoy. 🎉</p>`;
+        } else {
+            let htmlClases = '';
+            clasesHoy.forEach(clase => {
+                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200"><i class="fa-solid fa-video mr-1"></i> Entrar</a>` : '';
+                htmlClases += `
+                    <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden group hover:bg-white hover:shadow-sm transition">
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${clase.color}"></div>
+                        <div class="w-12 h-12 flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col justify-center items-center ml-2">
+                            <span class="text-[10px] text-slate-400 font-bold">HORA</span>
+                            <span class="text-lg font-black text-slate-700 leading-none">${clase.hora}ª</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 leading-tight" style="color: ${clase.color}">${clase.nombre}</h4>
+                            <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user-tie mr-1 opacity-50"></i>${clase.profesor || 'Sin profesor'}</p>
+                        </div>
+                        <div>${btnMeet}</div>
+                    </div>
+                `;
+            });
+            contenedorClases.innerHTML = htmlClases;
+        }
+    }
+
+    // 3. RENDERIZAR TAREAS (Máximo 5 para no saturar)
+    const listaTareasDash = document.getElementById('lista-tareas-dashboard');
+    const dashPendientes = document.getElementById('dash-pendientes');
+
+    if (listaTareasDash && dashPendientes) {
+        const pendientes = appData.tareas.filter(t => !t.completada);
+        dashPendientes.textContent = pendientes.length;
+
+        if (pendientes.length === 0) {
+            listaTareasDash.innerHTML = `<li class="py-8 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2">Todo al día. No hay tareas pendientes.</li>`;
+        } else {
+            let htmlTareas = '';
+            pendientes.slice(0, 5).forEach(tarea => {
+                const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
+                const colorPunto = asigInfo ? asigInfo.color : '#cbd5e1';
+
+                htmlTareas += `
+                    <li class="py-3 flex justify-between items-center group">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div>
+                            <span class="text-slate-700 font-medium truncate">${tarea.titulo}</span>
+                        </div>
+                        <button onclick="toggleTarea(${tarea.id})" class="opacity-0 group-hover:opacity-100 flex-shrink-0 ml-4 text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-100 transition border border-green-200 font-bold">
+                            <i class="fa-solid fa-check mr-1"></i> Hecho
+                        </button>
+                    </li>
+                `;
+            });
+            listaTareasDash.innerHTML = htmlTareas;
+        }
+    }
+
+    // 4. RENDERIZAR MEDIA GLOBAL
+    const widgetMedia = document.getElementById('dash-media-global');
+    if (widgetMedia) {
+        let sumaMedias = 0;
+        let asignaturasConNota = 0;
+
+        appData.asignaturas.forEach(asig => {
+            let sumaPesos = 0; let sumaNotas = 0;
+            asig.notas.forEach(n => { sumaPesos += n.peso; sumaNotas += n.valor * n.peso; });
+
+            if (sumaPesos > 0) {
+                sumaMedias += (sumaNotas / sumaPesos);
+                asignaturasConNota++;
+            }
+        });
+
+        if (asignaturasConNota === 0) {
+            widgetMedia.textContent = "-";
+            widgetMedia.className = "text-3xl font-bold text-slate-300";
+        } else {
+            const mediaGlobal = (sumaMedias / asignaturasConNota).toFixed(2);
+            widgetMedia.textContent = mediaGlobal;
+            widgetMedia.className = `text-3xl font-bold ${mediaGlobal >= 5 ? 'text-green-600' : 'text-red-500'}`;
+        }
+    }
+}

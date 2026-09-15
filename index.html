@@ -47,15 +47,60 @@
         <!-- DASHBOARD -->
         <section id="dashboard" class="seccion-app animate-fade-in">
             <h2 class="text-3xl font-bold text-slate-800 mb-8">Hola, Estudiante 👋</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-                    <div class="bg-blue-100 p-4 rounded-lg">
-                        <i class="fa-solid fa-file-signature text-2xl text-blue-600"></i>
-                    </div>
+
+            <!-- Tarjetas de Resumen (Top 3) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Tareas Pendientes -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                    <div class="bg-blue-100 p-4 rounded-lg"><i class="fa-solid fa-list-check text-2xl text-blue-600"></i></div>
                     <div>
                         <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tareas Pendientes</h3>
                         <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
                     </div>
+                </div>
+
+                <!-- Media Global -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                    <div class="bg-yellow-100 p-4 rounded-lg"><i class="fa-solid fa-star text-2xl text-yellow-600"></i></div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media Global</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-media-global">0.00</p>
+                    </div>
+                </div>
+
+                <!-- Clases Hoy -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+                    <div class="bg-purple-100 p-4 rounded-lg"><i class="fa-solid fa-calendar-day text-2xl text-purple-600"></i></div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Clases Hoy</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-clases-hoy">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paneles Detallados -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Panel: Clases de Hoy -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-regular fa-clock mr-2 text-purple-500"></i>Horario de Hoy</h3>
+                        <span id="dash-dia-actual" class="text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Lunes</span>
+                    </div>
+                    <div id="lista-clases-hoy" class="space-y-3">
+                        <!-- JS inyectará las clases del día aquí -->
+                    </div>
+                </div>
+
+                <!-- Panel: Tareas Rápidas -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-signature mr-2 text-blue-500"></i>Próximas Tareas</h3>
+                        <button onclick="cambiarSeccion('tareas')" class="text-sm text-blue-600 hover:underline font-medium">Ver todas</button>
+                    </div>
+                    <ul id="lista-tareas-dashboard" class="divide-y divide-slate-100">
+                        <!-- JS inyectará las tareas aquí -->
+                    </ul>
                 </div>
             </div>
         </section>
