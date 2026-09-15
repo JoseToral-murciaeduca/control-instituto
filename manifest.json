@@ -2,15 +2,15 @@
   "name": "Control Instituto",
   "short_name": "Instituto",
   "description": "Gestión de tareas, horarios y notas",
-  "start_url": "/control-instituto/",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "iax_logo.png",
+      "src": "iax-logo.ico",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/x-icon"
     }
   ]
 }

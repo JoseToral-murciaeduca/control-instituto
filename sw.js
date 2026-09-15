@@ -1,12 +1,11 @@
-const CACHE_NAME = 'instituto-v1';
+const CACHE_NAME = 'instituto-v2';
 const urlsToCache = [
-    '/control-instituto/',
-    '/control-instituto/index.html',
-    '/control-instituto/app.js',
-    '/control-instituto/manifest.json'
+    './',
+    './index.html',
+    './app.js',
+    './manifest.json'
 ];
 
-// Instalar y guardar en caché
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -14,8 +13,12 @@ self.addEventListener('install', event => {
     );
 });
 
-// Interceptar peticiones (Modo Offline)
 self.addEventListener('fetch', event => {
+    // Ignorar peticiones a la API de imágenes para que siempre traiga una nueva
+    if (event.request.url.includes('pollinations.ai') || event.request.url.includes('openstreetmap')) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request)
             .then(response => response || fetch(event.request))

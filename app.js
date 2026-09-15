@@ -34,11 +34,28 @@ function guardarDatos() {
 }
 
 // ==========================================
-// NAVEGACIÓN
+// NAVEGACIÓN Y RESPONSIVE
 // ==========================================
 function cambiarSeccion(idSeccion) {
     document.querySelectorAll('.seccion-app').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(idSeccion).classList.remove('hidden');
+
+    // Si estamos en móvil y el menú está abierto, lo cerramos al hacer clic en una sección
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
+        toggleSidebar();
+    }
+}
+
+// Nueva función para abrir/cerrar el menú en móviles
+window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    // Alternar clases de Tailwind
+    sidebar.classList.toggle('-translate-x-full');
+    overlay.classList.toggle('hidden');
 }
 
 // ==========================================
@@ -546,7 +563,10 @@ window.guardarPerfilPersonalizado = function(e) {
     const nombre = document.getElementById('perfil-nombre').value.trim();
     const instituto = document.getElementById('perfil-instituto').value.trim();
     const ciudad = document.getElementById('perfil-ciudad').value.trim();
-    const urlBanner = `https://picsum.photos/seed/${encodeURIComponent(nombre)}/1600/900`;
+
+    // NUEVO BANNER: Usamos IA generativa en tiempo real para crear un paisaje sin marcas de agua.
+    const promptParams = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
+    const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptParams)}?width=1600&height=900&nologo=true`;
 
     appData.perfil = { nombre: nombre, instituto: instituto, ciudad: ciudad, banner: urlBanner };
     guardarDatos();

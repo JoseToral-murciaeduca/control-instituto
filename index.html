@@ -17,206 +17,205 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 font-sans text-slate-800">
-<div class="flex h-screen overflow-hidden">
+<!-- ACTUALIZADO: Clases flex-col para móvil y flex-row para escritorio -->
+<body class="bg-slate-50 font-sans text-slate-800 flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <!-- Menú Lateral -->
-    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
-        <div class="p-6 border-b border-slate-800 text-center relative overflow-hidden">
-            <!-- Capa de color de fondo sutil -->
-            <div class="absolute inset-0 bg-blue-600 opacity-10"></div>
-            <h1 class="text-xl font-bold tracking-wider relative z-10">
-                <i class="fa-solid fa-graduation-cap text-blue-400 mr-2"></i>CONTROL
-            </h1>
-            <!-- Este texto cambiará dinámicamente con tu instituto -->
-            <p id="sidebar-instituto" class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest relative z-10">
-                Instituto
-            </p>
+<!-- NUEVO: Barra superior solo visible en móviles -->
+<div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center shadow-md z-20 relative shrink-0">
+    <h1 class="text-lg font-bold"><i class="fa-solid fa-graduation-cap text-blue-400 mr-2"></i>CONTROL</h1>
+    <button onclick="toggleSidebar()" class="text-2xl text-slate-300 hover:text-white transition">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+</div>
+
+<!-- NUEVO: Fondo oscuro semitransparente cuando el menú móvil está abierto -->
+<div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+<!-- ACTUALIZADO: Menú Lateral Adaptable (Oculto en móvil por defecto, visible en escritorio) -->
+<aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-40 fixed md:relative h-full transition-transform duration-300 -translate-x-full md:translate-x-0 shrink-0">
+    <!-- Botón cerrar solo visible en móvil -->
+    <button onclick="toggleSidebar()" class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white z-20">
+        <i class="fa-solid fa-xmark text-2xl"></i>
+    </button>
+
+    <div class="p-6 border-b border-slate-800 text-center relative overflow-hidden mt-6 md:mt-0">
+        <div class="absolute inset-0 bg-blue-600 opacity-10"></div>
+        <h1 class="text-xl font-bold tracking-wider relative z-10">
+            <i class="fa-solid fa-graduation-cap text-blue-400 mr-2"></i>CONTROL
+        </h1>
+        <p id="sidebar-instituto" class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest relative z-10">
+            Instituto
+        </p>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-2 mt-2 overflow-y-auto">
+        <button onclick="cambiarSeccion('dashboard')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-chart-line w-6 text-blue-400"></i> Resumen
+        </button>
+        <button onclick="cambiarSeccion('asignaturas-config')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-book w-6 text-orange-400"></i> Asignaturas
+        </button>
+        <button onclick="cambiarSeccion('horario')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-calendar-days w-6 text-purple-400"></i> Horario
+        </button>
+        <button onclick="cambiarSeccion('tareas')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-list-check w-6 text-green-400"></i> Tareas y Exámenes
+        </button>
+        <button onclick="cambiarSeccion('calificaciones')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
+            <i class="fa-solid fa-star w-6 text-yellow-400"></i> Calificaciones
+        </button>
+
+        <button onclick="cambiarSeccion('ajustes')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center mt-4 border-t border-slate-700">
+            <i class="fa-solid fa-gear w-6 text-slate-400"></i> Ajustes / Datos
+        </button>
+    </nav>
+</aside>
+
+<!-- Área Principal -->
+<main class="flex-1 overflow-y-auto p-0 bg-slate-50 relative">
+
+    <!-- DASHBOARD (Rediseñado con Banner Personalizado) -->
+    <section id="dashboard" class="seccion-app animate-fade-in pb-8">
+        <div id="dash-banner" class="h-64 bg-slate-800 relative bg-cover bg-center flex items-end pb-8 px-4 md:px-8" style="background-image: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80');">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+            <div class="relative z-10 w-full">
+                <p id="dash-ubicacion" class="text-blue-400 text-sm font-bold uppercase tracking-widest mb-1"><i class="fa-solid fa-location-dot mr-1"></i> Ciudad</p>
+                <h2 id="dash-saludo" class="text-3xl md:text-5xl font-black text-white drop-shadow-lg">Hola, Estudiante 👋</h2>
+            </div>
         </div>
 
-        <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
-            <button onclick="cambiarSeccion('dashboard')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
-                <i class="fa-solid fa-chart-line w-6 text-blue-400"></i> Resumen
-            </button>
-            <button onclick="cambiarSeccion('asignaturas-config')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
-                <i class="fa-solid fa-book w-6 text-orange-400"></i> Asignaturas
-            </button>
-            <button onclick="cambiarSeccion('horario')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
-                <i class="fa-solid fa-calendar-days w-6 text-purple-400"></i> Horario
-            </button>
-            <button onclick="cambiarSeccion('tareas')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
-                <i class="fa-solid fa-list-check w-6 text-green-400"></i> Tareas y Exámenes
-            </button>
-            <button onclick="cambiarSeccion('calificaciones')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
-                <i class="fa-solid fa-star w-6 text-yellow-400"></i> Calificaciones
-            </button>
-
-            <button onclick="cambiarSeccion('ajustes')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center mt-4 border-t border-slate-700">
-                <i class="fa-solid fa-gear w-6 text-slate-400"></i> Ajustes / Datos
-            </button>
-        </nav>
-    </aside>
-
-    <!-- Área Principal -->
-    <main class="flex-1 overflow-y-auto p-0 bg-slate-50 relative">
-
-        <!-- DASHBOARD (Rediseñado con Banner Personalizado) -->
-        <section id="dashboard" class="seccion-app animate-fade-in pb-8">
-            <!-- Banner Fotográfico Superior -->
-            <div id="dash-banner" class="h-64 bg-slate-800 relative bg-cover bg-center flex items-end pb-8 px-8" style="background-image: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80');">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
-                <div class="relative z-10 w-full">
-                    <p id="dash-ubicacion" class="text-blue-400 text-sm font-bold uppercase tracking-widest mb-1"><i class="fa-solid fa-location-dot mr-1"></i> Ciudad</p>
-                    <h2 id="dash-saludo" class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">Hola, Estudiante 👋</h2>
+        <div class="px-4 md:px-8 -mt-6 relative z-20">
+            <!-- Tarjetas de Resumen -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                    <div class="bg-blue-100 p-4 rounded-lg shrink-0"><i class="fa-solid fa-list-check text-2xl text-blue-600"></i></div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Pendientes</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                    <div class="bg-yellow-100 p-4 rounded-lg shrink-0"><i class="fa-solid fa-star text-2xl text-yellow-600"></i></div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media Global</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-media-global">0.00</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                    <div class="bg-purple-100 p-4 rounded-lg shrink-0"><i class="fa-solid fa-calendar-day text-2xl text-purple-600"></i></div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Clases Hoy</h3>
+                        <p class="text-3xl font-bold text-slate-800" id="dash-clases-hoy">0</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="px-8 -mt-6 relative z-20">
-                <!-- Tarjetas de Resumen (Top 3) -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
-                        <div class="bg-blue-100 p-4 rounded-lg"><i class="fa-solid fa-list-check text-2xl text-blue-600"></i></div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Pendientes</h3>
-                            <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
-                        </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-regular fa-clock mr-2 text-purple-500"></i>Horario de Hoy</h3>
+                        <span id="dash-dia-actual" class="text-xs md:text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Lunes</span>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
-                        <div class="bg-yellow-100 p-4 rounded-lg"><i class="fa-solid fa-star text-2xl text-yellow-600"></i></div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media Global</h3>
-                            <p class="text-3xl font-bold text-slate-800" id="dash-media-global">0.00</p>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
-                        <div class="bg-purple-100 p-4 rounded-lg"><i class="fa-solid fa-calendar-day text-2xl text-purple-600"></i></div>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Clases Hoy</h3>
-                            <p class="text-3xl font-bold text-slate-800" id="dash-clases-hoy">0</p>
-                        </div>
-                    </div>
+                    <div id="lista-clases-hoy" class="space-y-3"></div>
                 </div>
-
-                <!-- Paneles Detallados -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-slate-800"><i class="fa-regular fa-clock mr-2 text-purple-500"></i>Horario de Hoy</h3>
-                            <span id="dash-dia-actual" class="text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Lunes</span>
-                        </div>
-                        <div id="lista-clases-hoy" class="space-y-3"></div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-signature mr-2 text-blue-500"></i>Próximas Tareas</h3>
+                        <button onclick="cambiarSeccion('tareas')" class="text-sm text-blue-600 hover:underline font-medium">Ver todas</button>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-signature mr-2 text-blue-500"></i>Próximas Tareas</h3>
-                            <button onclick="cambiarSeccion('tareas')" class="text-sm text-blue-600 hover:underline font-medium">Ver todas</button>
-                        </div>
-                        <ul id="lista-tareas-dashboard" class="divide-y divide-slate-100"></ul>
-                    </div>
+                    <ul id="lista-tareas-dashboard" class="divide-y divide-slate-100"></ul>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- NUEVO: CONFIGURACIÓN DE ASIGNATURAS -->
-        <section id="asignaturas-config" class="seccion-app hidden animate-fade-in">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8">Gestión de Asignaturas</h2>
+    <!-- CONFIGURACIÓN DE ASIGNATURAS -->
+    <section id="asignaturas-config" class="seccion-app hidden animate-fade-in p-4 md:p-8">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8">Gestión de Asignaturas</h2>
 
-            <!-- Formulario Crear Asignatura -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-                <!-- Formulario Crear Asignatura -->
-                <form id="form-crear-asignatura" class="flex flex-col gap-4">
-                    <!-- Fila 1: Datos básicos -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Nombre Asignatura *</label>
-                            <input type="text" id="asig-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Profesor/a</label>
-                            <input type="text" id="asig-profesor" placeholder="Opcional" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Enlace (Meet/Zoom)</label>
-                            <input type="url" id="asig-enlace" placeholder="https://..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        </div>
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+            <form id="form-crear-asignatura" class="flex flex-col gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre Asignatura *</label>
+                        <input type="text" id="asig-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
-
-                    <!-- Fila 2: Horarios Dinámicos -->
-                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="text-sm font-bold text-slate-700"><i class="fa-regular fa-clock mr-2"></i>Horarios de la asignatura</label>
-                            <!-- Botón que genera filas -->
-                            <button type="button" onclick="agregarFilaHorarioFormulario()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 font-bold transition shadow-sm">
-                                <i class="fa-solid fa-plus mr-1"></i> Añadir día/hora
-                            </button>
-                        </div>
-
-                        <!-- Contenedor donde aparecerán las filas nuevas -->
-                        <div id="contenedor-filas-horario" class="space-y-2"></div>
-                        <p class="text-xs text-slate-400 mt-2 italic">* Puedes añadir todos los días que quieras. Si pones la 7ª u 8ª hora, el horario general crecerá automáticamente.</p>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Profesor/a</label>
+                        <input type="text" id="asig-profesor" placeholder="Opcional" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Enlace (Meet/Zoom)</label>
+                        <input type="url" id="asig-enlace" placeholder="https://..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                </div>
 
-                    <!-- Fila 3: Color y Botón -->
-                    <div class="flex justify-between items-center mt-2">
-                        <div class="w-24">
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Color</label>
-                            <input type="color" id="asig-color" value="#3b82f6" class="w-full h-10 rounded cursor-pointer border-0 p-0">
-                        </div>
-                        <button type="submit" class="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 font-bold shadow-md transition">
-                            Guardar Asignatura
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
+                        <label class="text-sm font-bold text-slate-700"><i class="fa-regular fa-clock mr-2"></i>Horarios de la asignatura</label>
+                        <button type="button" onclick="agregarFilaHorarioFormulario()" class="w-full md:w-auto text-xs bg-purple-100 text-purple-700 px-3 py-2 md:py-1.5 rounded-lg hover:bg-purple-200 font-bold transition shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i> Añadir día/hora
                         </button>
                     </div>
-                </form>
-            </div>
+                    <div id="contenedor-filas-horario" class="space-y-2"></div>
+                </div>
 
-            <!-- Lista de Asignaturas y sus Horarios -->
-            <div id="contenedor-config-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Inyectado por JS -->
-            </div>
-        </section>
-
-        <!-- TAREAS (Modificado para usar desplegable y fecha límite) -->
-        <section id="tareas" class="seccion-app hidden animate-fade-in">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8">Mis Tareas y Exámenes</h2>
-
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-                <form id="form-tarea" class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="flex-1 w-full">
-                        <label class="block text-sm font-medium text-slate-600 mb-1">¿Qué hay que hacer?</label>
-                        <input type="text" id="input-tarea" required placeholder="Ej. Entregar práctica..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <div class="flex flex-col md:flex-row justify-between items-center mt-2 gap-4">
+                    <div class="w-full md:w-24 flex md:block items-center justify-between">
+                        <label class="block text-sm font-medium text-slate-600 md:mb-1">Color</label>
+                        <input type="color" id="asig-color" value="#3b82f6" class="w-16 h-10 md:w-full rounded cursor-pointer border-0 p-0">
                     </div>
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Asignatura</label>
-                        <select id="input-asignatura" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
-                            <!-- Opciones inyectadas por JS -->
-                        </select>
-                    </div>
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Fecha límite (Opcional)</label>
-                        <!-- NUEVO INPUT DE FECHA -->
-                        <input type="date" id="input-fecha-tarea" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer text-slate-600">
-                    </div>
-                    <button type="submit" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md">
-                        <i class="fa-solid fa-plus mr-2"></i>Añadir
+                    <button type="submit" class="w-full md:w-auto bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 font-bold shadow-md transition">
+                        Guardar Asignatura
                     </button>
-                </form>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                <ul id="lista-tareas" class="divide-y divide-slate-100"></ul>
-            </div>
-        </section>
+                </div>
+            </form>
+        </div>
 
-        <!-- HORARIO (Ahora es automático) -->
-        <section id="horario" class="seccion-app hidden animate-fade-in">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-3xl font-bold text-slate-800">Mi Horario</h2>
-                <span class="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-wand-magic-sparkles"></i> Generado Automáticamente</span>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-                <table class="w-full border-collapse min-w-[700px]">
+        <div id="contenedor-config-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+    </section>
+
+    <!-- TAREAS -->
+    <section id="tareas" class="seccion-app hidden animate-fade-in p-4 md:p-8">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8">Mis Tareas y Exámenes</h2>
+
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+            <form id="form-tarea" class="flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1 w-full">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">¿Qué hay que hacer?</label>
+                    <input type="text" id="input-tarea" required placeholder="Ej. Entregar práctica..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="w-full md:w-1/4">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Asignatura</label>
+                    <select id="input-asignatura" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"></select>
+                </div>
+                <div class="w-full md:w-1/4">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Fecha límite (Opcional)</label>
+                    <input type="date" id="input-fecha-tarea" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer text-slate-600">
+                </div>
+                <button type="submit" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md">
+                    <i class="fa-solid fa-plus mr-2"></i>Añadir
+                </button>
+            </form>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <ul id="lista-tareas" class="divide-y divide-slate-100"></ul>
+        </div>
+    </section>
+
+    <!-- HORARIO -->
+    <section id="horario" class="seccion-app hidden animate-fade-in p-4 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+            <h2 class="text-2xl md:text-3xl font-bold text-slate-800">Mi Horario</h2>
+            <span class="text-xs md:text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-wand-magic-sparkles"></i> Generado Automáticamente</span>
+        </div>
+        <!-- ACTUALIZADO: Contenedor con scroll horizontal para móviles -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 w-full overflow-x-auto">
+            <div class="min-w-[800px] p-4 md:p-6">
+                <table class="w-full border-collapse">
                     <thead>
                     <tr class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
-                        <th class="border border-slate-200 p-3 w-16 text-center">Hora</th>
+                        <th class="border border-slate-200 p-3 w-20 text-center">Hora</th>
                         <th class="border border-slate-200 p-3 w-1/5 text-center">Lunes</th>
                         <th class="border border-slate-200 p-3 w-1/5 text-center">Martes</th>
                         <th class="border border-slate-200 p-3 w-1/5 text-center">Miércoles</th>
@@ -224,81 +223,72 @@
                         <th class="border border-slate-200 p-3 w-1/5 text-center">Viernes</th>
                     </tr>
                     </thead>
-                    <tbody id="tabla-horario">
-                    <!-- JS inyecta filas leyendo de Asignaturas -->
-                    </tbody>
+                    <tbody id="tabla-horario"></tbody>
                 </table>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- CALIFICACIONES (Sin formulario de crear asig, se enlaza automáticamente) -->
-        <section id="calificaciones" class="seccion-app hidden animate-fade-in">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8">Mis Calificaciones</h2>
-            <div id="contenedor-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- JS inyectará las asignaturas y sus notas aquí -->
+    <!-- CALIFICACIONES -->
+    <section id="calificaciones" class="seccion-app hidden animate-fade-in p-4 md:p-8">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8">Mis Calificaciones</h2>
+        <div id="contenedor-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+    </section>
+
+    <!-- AJUSTES Y SEGURIDAD -->
+    <section id="ajustes" class="seccion-app hidden animate-fade-in p-4 md:p-8">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 md:mb-8">Ajustes y Seguridad de Datos</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
+                <div class="text-purple-500 text-4xl md:text-5xl mb-4"><i class="fa-solid fa-id-card"></i></div>
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-2">Mi Perfil</h3>
+                <p class="text-slate-500 mb-6 text-xs md:text-sm flex-1">Actualiza tu nombre, instituto o ciudad. Esto regenerará tu banner principal.</p>
+                <button onclick="abrirEdicionPerfil()" class="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition font-medium shadow mt-auto">
+                    Editar Datos
+                </button>
             </div>
-        </section>
 
-        <!-- AJUSTES Y SEGURIDAD -->
-        <section id="ajustes" class="seccion-app hidden animate-fade-in">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8">Ajustes y Seguridad de Datos</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- NUEVO: Editar Perfil -->
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
-                    <div class="text-purple-500 text-5xl mb-4"><i class="fa-solid fa-id-card"></i></div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">Mi Perfil</h3>
-                    <p class="text-slate-500 mb-6 text-sm flex-1">Actualiza tu nombre, instituto o ciudad. Esto regenerará tu banner principal.</p>
-                    <button onclick="abrirEdicionPerfil()" class="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition font-medium shadow mt-auto">
-                        Editar Datos
-                    </button>
-                </div>
-                
-                <!-- Exportar -->
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
-                    <div class="text-blue-500 text-5xl mb-4"><i class="fa-solid fa-cloud-arrow-down"></i></div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">Exportar Datos</h3>
-                    <p class="text-slate-500 mb-6 text-sm flex-1">Descarga un archivo con todas tus tareas, horarios y notas. Ideal para copias de seguridad.</p>
-                    <button onclick="exportarDatos()" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow mt-auto">Descargar Backup</button>
-                </div>
-
-                <!-- Importar -->
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
-                    <div class="text-green-500 text-5xl mb-4"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">Importar Datos</h3>
-                    <p class="text-slate-500 mb-6 text-sm flex-1">Restaura tu información desde un backup. <strong>Sobrescribirá</strong> lo actual.</p>
-                    <input type="file" id="input-importar" accept=".json" class="hidden" onchange="procesarImportacion(event)">
-                    <button onclick="document.getElementById('input-importar').click()" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium shadow mt-auto">Subir Archivo (.json)</button>
-                </div>
-
-                <!-- NUEVO: Reiniciar Curso -->
-                <div class="bg-red-50 p-8 rounded-xl shadow-sm border border-red-200 text-center flex flex-col h-full hover:shadow-md transition">
-                    <div class="text-red-500 text-5xl mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <h3 class="text-xl font-bold text-red-800 mb-2">Nuevo Curso</h3>
-                    <p class="text-red-600/80 mb-6 text-sm flex-1">Elimina absolutamente todos los datos guardados en este navegador y empieza desde cero.</p>
-                    <button onclick="reiniciarCurso()" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition font-bold shadow-md border border-red-700 mt-auto">
-                        <i class="fa-solid fa-skull mr-2"></i>Borrar Todo
-                    </button>
-                </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
+                <div class="text-blue-500 text-4xl md:text-5xl mb-4"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-2">Exportar Datos</h3>
+                <p class="text-slate-500 mb-6 text-xs md:text-sm flex-1">Descarga un archivo con todas tus tareas, horarios y notas. Ideal para copias de seguridad.</p>
+                <button onclick="exportarDatos()" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow mt-auto">Descargar Backup</button>
             </div>
-        </section>
 
-    </main>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-slate-100 text-center flex flex-col h-full hover:shadow-md transition">
+                <div class="text-green-500 text-4xl md:text-5xl mb-4"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-2">Importar Datos</h3>
+                <p class="text-slate-500 mb-6 text-xs md:text-sm flex-1">Restaura tu información desde un backup. <strong>Sobrescribirá</strong> lo actual.</p>
+                <input type="file" id="input-importar" accept=".json" class="hidden" onchange="procesarImportacion(event)">
+                <button onclick="document.getElementById('input-importar').click()" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium shadow mt-auto">Subir Archivo (.json)</button>
+            </div>
+
+            <div class="bg-red-50 p-6 md:p-8 rounded-xl shadow-sm border border-red-200 text-center flex flex-col h-full hover:shadow-md transition">
+                <div class="text-red-500 text-4xl md:text-5xl mb-4"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 class="text-lg md:text-xl font-bold text-red-800 mb-2">Nuevo Curso</h3>
+                <p class="text-red-600/80 mb-6 text-xs md:text-sm flex-1">Elimina absolutamente todos los datos guardados en este navegador y empieza desde cero.</p>
+                <button onclick="reiniciarCurso()" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition font-bold shadow-md border border-red-700 mt-auto">
+                    <i class="fa-solid fa-skull mr-2"></i>Borrar Todo
+                </button>
+            </div>
+        </div>
+    </section>
+
+</main>
 </div>
 
-<!-- MODAL DE BIENVENIDA (ONBOARDING) -->
-<div id="modal-bienvenida" class="fixed inset-0 bg-slate-900 bg-opacity-90 hidden flex items-center justify-center z-50 backdrop-blur-md transition-opacity">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col md:flex-row">
+<!-- MODAL DE BIENVENIDA -->
+<div id="modal-bienvenida" class="fixed inset-0 bg-slate-900 bg-opacity-90 hidden flex items-center justify-center z-50 backdrop-blur-md transition-opacity p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col md:flex-row max-h-[90vh] overflow-y-auto">
 
-        <!-- Mitad visual -->
-        <div class="bg-blue-600 md:w-1/3 p-8 text-white flex flex-col justify-center items-center text-center">
-            <i class="fa-solid fa-rocket text-6xl mb-4 drop-shadow-md"></i>
-            <h3 class="text-2xl font-bold mb-2">¡Bienvenido!</h3>
-            <p class="text-blue-100 text-sm">Vamos a personalizar tu panel de control para que te sientas como en casa.</p>
+        <div class="bg-blue-600 md:w-1/3 p-6 md:p-8 text-white flex flex-col justify-center items-center text-center shrink-0">
+            <i class="fa-solid fa-rocket text-5xl md:text-6xl mb-4 drop-shadow-md"></i>
+            <h3 class="text-xl md:text-2xl font-bold mb-2">¡Bienvenido!</h3>
+            <p class="text-blue-100 text-xs md:text-sm">Vamos a personalizar tu panel de control para que te sientas como en casa.</p>
         </div>
 
-        <!-- Formulario -->
-        <div class="p-8 md:w-2/3">
+        <div class="p-6 md:p-8 md:w-2/3">
             <form id="form-perfil" onsubmit="guardarPerfilPersonalizado(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">¿Cómo te llamas?</label>
@@ -312,7 +302,7 @@
                     <label class="block text-sm font-bold text-slate-700 mb-1">¿De dónde eres? (Ciudad/Localidad)</label>
                     <div class="flex gap-2">
                         <input type="text" id="perfil-ciudad" required placeholder="Ej. Fortuna, Murcia" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <button type="button" onclick="detectarUbicacion()" class="bg-blue-100 text-blue-600 px-4 rounded-lg hover:bg-blue-200 transition font-bold shadow-sm flex items-center justify-center" title="Detectar mi ubicación automática">
+                        <button type="button" onclick="detectarUbicacion()" class="bg-blue-100 text-blue-600 px-4 rounded-lg hover:bg-blue-200 transition font-bold shadow-sm flex items-center justify-center shrink-0" title="Detectar mi ubicación automática">
                             <i class="fa-solid fa-location-crosshairs"></i>
                         </button>
                     </div>
