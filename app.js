@@ -34,10 +34,45 @@ function cambiarSeccion(idSeccion) {
 // 1. MÓDULO CENTRAL: GESTIÓN DE ASIGNATURAS
 // ==========================================
 const formCrearAsignatura = document.getElementById('form-crear-asignatura');
+let contadorFilasHorario = 0;
+
+// Generar filas dinámicas en el formulario
+window.agregarFilaHorarioFormulario = function() {
+    const contenedor = document.getElementById('contenedor-filas-horario');
+    const idFila = `fila-horario-${contadorFilasHorario++}`;
+    const div = document.createElement('div');
+    div.id = idFila;
+    div.className = 'flex gap-3 items-center animate-fade-in';
+    div.innerHTML = `
+        <select class="select-dia-nuevo w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white">
+            <option value="lunes">Lunes</option><option value="martes">Martes</option>
+            <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
+            <option value="viernes">Viernes</option>
+        </select>
+        <input type="number" min="1" max="15" placeholder="Hora (Ej: 1, 2, 7...)" class="input-hora-nuevo w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white" required>
+        <button type="button" onclick="document.getElementById('${idFila}').remove()" class="text-red-400 hover:text-red-600 p-2 transition bg-white rounded border border-slate-200" title="Borrar fila">
+            <i class="fa-solid fa-trash-can"></i>
+        </button>
+    `;
+    contenedor.appendChild(div);
+}
 
 if (formCrearAsignatura) {
     formCrearAsignatura.addEventListener('submit', (e) => {
         e.preventDefault();
+
+        // Recoger todas las filas de horario generadas
+        const sesiones = [];
+        const filas = document.getElementById('contenedor-filas-horario').children;
+        for(let fila of filas) {
+            const dia = fila.querySelector('.select-dia-nuevo').value;
+            const hora = parseInt(fila.querySelector('.input-hora-nuevo').value);
+            // Si la hora es válida y no hemos añadido ya esa misma hora y día
+            if(!isNaN(hora) && !sesiones.some(s => s.dia === dia && s.hora === hora)) {
+                sesiones.push({ dia, hora });
+            }
+        }
+
         const nuevaAsig = {
             id: Date.now(),
             nombre: document.getElementById('asig-nombre').value.trim(),
@@ -45,10 +80,12 @@ if (formCrearAsignatura) {
             enlace: document.getElementById('asig-enlace').value.trim(),
             color: document.getElementById('asig-color').value,
             notas: [],
-            sesiones: [] // Aquí se guardarán los días y horas
+            sesiones: sesiones // Se guardan todos los horarios a la vez
         };
         appData.asignaturas.push(nuevaAsig);
+
         formCrearAsignatura.reset();
+        document.getElementById('contenedor-filas-horario').innerHTML = ''; // Limpiar filas tras guardar
         guardarDatos();
     });
 }
@@ -64,9 +101,9 @@ function renderizarConfigAsignaturas() {
     }
 
     appData.asignaturas.forEach(asig => {
-        // Generar lista de sesiones (Horario)
         let htmlSesiones = '';
-        asig.sesiones.forEach((sesion, index) => {
+        // Ordenamos las sesiones por hora antes de mostrarlas para que quede bonito
+        asig.sesiones.sort((a, b) => a.hora - b.hora).forEach((sesion, index) => {
             htmlSesiones += `
                 <div class="flex justify-between items-center text-sm p-2 bg-slate-50 rounded mt-1 border border-slate-100">
                     <span class="capitalize font-medium"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} - ${sesion.hora}ª Hora</span>
@@ -75,7 +112,6 @@ function renderizarConfigAsignaturas() {
             `;
         });
 
-        // Crear la tarjeta de la asignatura
         const div = document.createElement('div');
         div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden';
         div.innerHTML = `
@@ -99,17 +135,13 @@ function renderizarConfigAsignaturas() {
             <div class="mt-4 pt-4 border-t border-slate-100">
                 <form onsubmit="agregarSesion(event, ${asig.id})" class="flex gap-2">
                     <select id="dia-${asig.id}" required class="w-1/2 p-2 text-sm border border-slate-200 rounded">
-                        <option value="lunes">Lunes</option>
-                        <option value="martes">Martes</option>
-                        <option value="miercoles">Miércoles</option>
-                        <option value="jueves">Jueves</option>
+                        <option value="lunes">Lunes</option><option value="martes">Martes</option>
+                        <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
                         <option value="viernes">Viernes</option>
                     </select>
-                    <select id="hora-${asig.id}" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
-                        <option value="1">1ª Hora</option><option value="2">2ª Hora</option><option value="3">3ª Hora</option>
-                        <option value="4">4ª Hora</option><option value="5">5ª Hora</option><option value="6">6ª Hora</option>
-                    </select>
-                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700 transition" title="Añadir bloque al horario">
+                    <!-- Permite introducir cualquier hora libremente -->
+                    <input type="number" id="hora-${asig.id}" min="1" max="15" placeholder="Hora (ej. 1)" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
+                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700 transition" title="Añadir bloque">
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </form>
@@ -125,8 +157,7 @@ window.agregarSesion = function(e, idAsig) {
     const hora = parseInt(document.getElementById(`hora-${idAsig}`).value);
 
     const asig = appData.asignaturas.find(a => a.id === idAsig);
-    if(asig) {
-        // Evitar duplicados exactos
+    if(asig && !isNaN(hora)) {
         if(!asig.sesiones.some(s => s.dia === dia && s.hora === hora)) {
             asig.sesiones.push({ dia, hora });
             guardarDatos();
@@ -143,14 +174,14 @@ window.borrarSesion = function(idAsig, indexSesion) {
 }
 
 window.eliminarAsignaturaMaster = function(idAsig) {
-    if(confirm("⚠️ ¿Borrar asignatura? Se eliminará del horario y se perderán sus calificaciones. (Las tareas pendientes se mantendrán)")) {
+    if(confirm("⚠️ ¿Borrar asignatura? Se eliminará del horario y se perderán sus calificaciones.")) {
         appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
         guardarDatos();
     }
 }
 
 // ==========================================
-// 2. HORARIO AUTOMÁTICO (Solo lectura)
+// 2. HORARIO AUTOMÁTICO (Solo lectura, adaptativo)
 // ==========================================
 function renderizarHorarioAuto() {
     const tablaHorario = document.getElementById('tabla-horario');
@@ -158,12 +189,20 @@ function renderizarHorarioAuto() {
     tablaHorario.innerHTML = '';
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 
-    for (let hora = 1; hora <= 6; hora++) {
+    // Cálculo inteligente de filas: busca si algún día terminas más tarde de la 6ª hora
+    let maxHora = 6;
+    appData.asignaturas.forEach(a => {
+        a.sesiones.forEach(s => {
+            if (s.hora > maxHora) maxHora = s.hora;
+        });
+    });
+
+    // Construye tantas filas como maxHora hayamos encontrado
+    for (let hora = 1; hora <= maxHora; hora++) {
         const fila = document.createElement('tr');
         let htmlFila = `<td class="border border-slate-200 bg-slate-50 font-bold text-slate-400 text-center align-middle">${hora}ª</td>`;
 
         dias.forEach(dia => {
-            // Buscar si alguna asignatura tiene configurado este día y hora
             const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === hora));
 
             if (asigEncontrada) {

@@ -111,26 +111,47 @@
 
             <!-- Formulario Crear Asignatura -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
-                <form id="form-crear-asignatura" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Nombre Asignatura *</label>
-                        <input type="text" id="asig-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Profesor/a</label>
-                        <input type="text" id="asig-profesor" placeholder="Opcional" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-600 mb-1">Enlace (Meet/Zoom)</label>
-                        <input type="url" id="asig-enlace" placeholder="https://..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    </div>
-                    <div class="flex gap-2">
-                        <div class="w-16">
-                            <label class="block text-sm font-medium text-slate-600 mb-1">Color</label>
-                            <input type="color" id="asig-color" value="#3b82f6" class="w-full h-12 rounded-lg cursor-pointer border-0 p-0">
+                <!-- Formulario Crear Asignatura -->
+                <form id="form-crear-asignatura" class="flex flex-col gap-4">
+                    <!-- Fila 1: Datos básicos -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Nombre Asignatura *</label>
+                            <input type="text" id="asig-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                         </div>
-                        <button type="submit" class="flex-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium shadow-md transition">
-                            Añadir
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Profesor/a</label>
+                            <input type="text" id="asig-profesor" placeholder="Opcional" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Enlace (Meet/Zoom)</label>
+                            <input type="url" id="asig-enlace" placeholder="https://..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: Horarios Dinámicos -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-sm font-bold text-slate-700"><i class="fa-regular fa-clock mr-2"></i>Horarios de la asignatura</label>
+                            <!-- Botón que genera filas -->
+                            <button type="button" onclick="agregarFilaHorarioFormulario()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 font-bold transition shadow-sm">
+                                <i class="fa-solid fa-plus mr-1"></i> Añadir día/hora
+                            </button>
+                        </div>
+
+                        <!-- Contenedor donde aparecerán las filas nuevas -->
+                        <div id="contenedor-filas-horario" class="space-y-2"></div>
+                        <p class="text-xs text-slate-400 mt-2 italic">* Puedes añadir todos los días que quieras. Si pones la 7ª u 8ª hora, el horario general crecerá automáticamente.</p>
+                    </div>
+
+                    <!-- Fila 3: Color y Botón -->
+                    <div class="flex justify-between items-center mt-2">
+                        <div class="w-24">
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Color</label>
+                            <input type="color" id="asig-color" value="#3b82f6" class="w-full h-10 rounded cursor-pointer border-0 p-0">
+                        </div>
+                        <button type="submit" class="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 font-bold shadow-md transition">
+                            Guardar Asignatura
                         </button>
                     </div>
                 </form>
