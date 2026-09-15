@@ -549,6 +549,52 @@ window.guardarPerfilPersonalizado = function(e) {
     aplicarPersonalizacion();
 }
 
+// NUEVA FUNCIÓN: Geolocalización Inversa
+window.detectarUbicacion = function() {
+    const inputCiudad = document.getElementById('perfil-ciudad');
+
+    // 1. Comprobar si el dispositivo tiene GPS/Ubicación
+    if (!navigator.geolocation) {
+        alert("Tu navegador no soporta la geolocalización.");
+        return;
+    }
+
+    // Efecto visual de carga
+    const textoOriginal = inputCiudad.value;
+    inputCiudad.value = "Detectando ubicación...";
+    inputCiudad.disabled = true;
+
+    // 2. Pedir coordenadas al navegador
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        try {
+            // 3. Traducir coordenadas a ciudad usando OpenStreetMap (Gratis y sin API Key)
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await response.json();
+
+            // OpenStreetMap devuelve muchos datos, buscamos el pueblo, ciudad o municipio
+            const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
+            const provincia = data.address.state || data.address.province || "";
+
+            inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
+        } catch (error) {
+            console.error("Error al conectar con el satélite:", error);
+            inputCiudad.value = textoOriginal;
+            alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
+        } finally {
+            inputCiudad.disabled = false;
+        }
+    }, (error) => {
+        // Si el usuario rechaza el permiso o falla el GPS
+        console.warn("Error de GPS:", error);
+        inputCiudad.value = textoOriginal;
+        inputCiudad.disabled = false;
+        alert("No has dado permiso o hay un error con la ubicación. Por favor, escríbela a mano.");
+    });
+}
+
 // NUEVA FUNCIÓN: Para poder editar el perfil más tarde
 window.abrirEdicionPerfil = function() {
     if (appData.perfil) {
