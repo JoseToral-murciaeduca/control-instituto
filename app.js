@@ -532,9 +532,10 @@ window.guardarPerfilPersonalizado = function(e) {
     const instituto = document.getElementById('perfil-instituto').value.trim();
     const ciudad = document.getElementById('perfil-ciudad').value.trim();
 
-    // Asignamos una imagen bonita del skyline o paisaje urbano (usamos Unsplash aleatorio con la palabra de la ciudad para que sea dinámico)
-    // Nota: Como no tenemos API, usamos la URL de búsqueda dinámica de Unsplash
-    const urlBanner = `https://source.unsplash.com/1600x900/?landscape,${encodeURIComponent(ciudad.split(',')[0])}`;
+    // Usamos Picsum Photos para generar fondos aleatorios de alta calidad,
+    // añadiendo un "seed" (semilla) basado en tu nombre para que siempre salga 
+    // la misma imagen para ti, dando consistencia a tu perfil.
+    const urlBanner = `https://picsum.photos/seed/${encodeURIComponent(nombre)}/1600/900`;
 
     appData.perfil = {
         nombre: nombre,
@@ -546,6 +547,16 @@ window.guardarPerfilPersonalizado = function(e) {
     guardarDatos();
     document.getElementById('modal-bienvenida').classList.add('hidden');
     aplicarPersonalizacion();
+}
+
+// NUEVA FUNCIÓN: Para poder editar el perfil más tarde
+window.abrirEdicionPerfil = function() {
+    if (appData.perfil) {
+        document.getElementById('perfil-nombre').value = appData.perfil.nombre;
+        document.getElementById('perfil-instituto').value = appData.perfil.instituto;
+        document.getElementById('perfil-ciudad').value = appData.perfil.ciudad;
+    }
+    document.getElementById('modal-bienvenida').classList.remove('hidden');
 }
 
 function aplicarPersonalizacion() {
