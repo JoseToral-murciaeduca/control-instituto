@@ -43,19 +43,124 @@ function cambiarSeccion(idSeccion) {
     // Si estamos en móvil y el menú está abierto, lo cerramos al hacer clic en una sección
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
+    // Usamos window.innerWidth para asegurar que solo se cierre en vista móvil
+    if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
         toggleSidebar();
     }
 }
 
-// Nueva función para abrir/cerrar el menú en móviles
+// Función para abrir/cerrar el menú en móviles
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    // Alternar clases de Tailwind
-    sidebar.classList.toggle('-translate-x-full');
-    overlay.classList.toggle('hidden');
+    // Alternar clases de Tailwind para ocultar/mostrar
+    if (sidebar) sidebar.classList.toggle('-translate-x-full');
+    if (overlay) overlay.classList.toggle('hidden');
+}
+
+// ==========================================
+// ONBOARDING, PERFIL Y GEOLOCALIZACIÓN
+// ==========================================
+function comprobarPerfil() {
+    const modalBienvenida = document.getElementById('modal-bienvenida');
+    // Si no hay perfil guardado, mostramos la ventana obligatoria
+    if (!appData.perfil) {
+        if(modalBienvenida) modalBienvenida.classList.remove('hidden');
+    } else {
+        aplicarPersonalizacion();
+    }
+}
+
+window.guardarPerfilPersonalizado = function(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('perfil-nombre').value.trim();
+    const instituto = document.getElementById('perfil-instituto').value.trim();
+    const ciudad = document.getElementById('perfil-ciudad').value.trim();
+
+    // IA GENERATIVA (Pollinations): Crea un paisaje realista de tu ciudad/instituto sin marcas de agua
+    const promptTexto = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
+    const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptTexto)}?width=1600&height=900&nologo=true`;
+
+    appData.perfil = {
+        nombre: nombre,
+        instituto: instituto,
+        ciudad: ciudad,
+        banner: urlBanner
+    };
+
+    guardarDatos();
+    document.getElementById('modal-bienvenida').classList.add('hidden');
+    aplicarPersonalizacion();
+}
+
+window.detectarUbicacion = function() {
+    const inputCiudad = document.getElementById('perfil-ciudad');
+
+    if (!navigator.geolocation) {
+        alert("Tu navegador no soporta la geolocalización.");
+        return;
+    }
+
+    const textoOriginal = inputCiudad.value;
+    inputCiudad.value = "Detectando ubicación...";
+    inputCiudad.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await response.json();
+
+            const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
+            const provincia = data.address.state || data.address.province || "";
+
+            inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
+        } catch (error) {
+            console.error("Error al conectar con el satélite:", error);
+            inputCiudad.value = textoOriginal;
+            alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
+        } finally {
+            inputCiudad.disabled = false;
+        }
+    }, (error) => {
+        console.warn("Error de GPS:", error);
+        inputCiudad.value = textoOriginal;
+        inputCiudad.disabled = false;
+        alert("No has dado permiso o hay un error con la ubicación. Por favor, escríbela a mano.");
+    });
+}
+
+window.abrirEdicionPerfil = function() {
+    if (appData.perfil) {
+        document.getElementById('perfil-nombre').value = appData.perfil.nombre;
+        document.getElementById('perfil-instituto').value = appData.perfil.instituto;
+        document.getElementById('perfil-ciudad').value = appData.perfil.ciudad;
+    }
+    document.getElementById('modal-bienvenida').classList.remove('hidden');
+}
+
+function aplicarPersonalizacion() {
+    if (!appData.perfil) return;
+
+    // 1. Personalizar el Menú Lateral
+    const textInstituto = document.getElementById('sidebar-instituto');
+    if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
+
+    // 2. Personalizar el Dashboard
+    const textSaludo = document.getElementById('dash-saludo');
+    const textUbicacion = document.getElementById('dash-ubicacion');
+    const banner = document.getElementById('dash-banner');
+
+    if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
+    if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
+
+    // Aplicamos la imagen de fondo si la hay
+    if(banner && appData.perfil.banner) {
+        banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
+    }
 }
 
 // ==========================================
@@ -64,21 +169,20 @@ window.toggleSidebar = function() {
 const formCrearAsignatura = document.getElementById('form-crear-asignatura');
 let contadorFilasHorario = 0;
 
-// Generar filas dinámicas en el formulario
+// Generar filas dinámicas en el formulario (ADAPTADO A MÓVIL)
 window.agregarFilaHorarioFormulario = function() {
     const contenedor = document.getElementById('contenedor-filas-horario');
     const idFila = `fila-horario-${contadorFilasHorario++}`;
     const div = document.createElement('div');
     div.id = idFila;
-    div.className = 'flex gap-3 items-center animate-fade-in';
-    // ACTUALIZADO: Select desplegable con las franjas horarias exactas
+    div.className = 'flex flex-col md:flex-row gap-3 items-center animate-fade-in w-full mb-2';
     div.innerHTML = `
-        <select class="select-dia-nuevo w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white">
+        <select class="select-dia-nuevo w-full md:w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white">
             <option value="lunes">Lunes</option><option value="martes">Martes</option>
             <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
             <option value="viernes">Viernes</option>
         </select>
-        <select class="input-hora-nuevo w-1/2 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white" required>
+        <select class="input-hora-nuevo w-full md:w-1/2 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white" required>
             <option value="" disabled selected>Elige franja horaria...</option>
             <option value="1">15:20 - 16:15</option>
             <option value="2">16:15 - 17:10</option>
@@ -87,8 +191,8 @@ window.agregarFilaHorarioFormulario = function() {
             <option value="5">19:15 - 20:10</option>
             <option value="6">20:10 - 21:05</option>
         </select>
-        <button type="button" onclick="document.getElementById('${idFila}').remove()" class="text-red-400 hover:text-red-600 p-2 transition bg-white rounded border border-slate-200" title="Borrar fila">
-            <i class="fa-solid fa-trash-can"></i>
+        <button type="button" onclick="document.getElementById('${idFila}').remove()" class="w-full md:w-auto text-red-400 hover:text-red-600 p-2 transition bg-white rounded border border-slate-200" title="Borrar fila">
+            <i class="fa-solid fa-trash-can"></i> Borrar
         </button>
     `;
     contenedor.appendChild(div);
@@ -98,13 +202,11 @@ if (formCrearAsignatura) {
     formCrearAsignatura.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        // Recoger todas las filas de horario generadas
         const sesiones = [];
         const filas = document.getElementById('contenedor-filas-horario').children;
         for(let fila of filas) {
             const dia = fila.querySelector('.select-dia-nuevo').value;
             const hora = parseInt(fila.querySelector('.input-hora-nuevo').value);
-            // Si la hora es válida y no hemos añadido ya esa misma hora y día
             if(!isNaN(hora) && !sesiones.some(s => s.dia === dia && s.hora === hora)) {
                 sesiones.push({ dia, hora });
             }
@@ -117,12 +219,12 @@ if (formCrearAsignatura) {
             enlace: document.getElementById('asig-enlace').value.trim(),
             color: document.getElementById('asig-color').value,
             notas: [],
-            sesiones: sesiones // Se guardan todos los horarios a la vez
+            sesiones: sesiones
         };
         appData.asignaturas.push(nuevaAsig);
 
         formCrearAsignatura.reset();
-        document.getElementById('contenedor-filas-horario').innerHTML = ''; // Limpiar filas tras guardar
+        document.getElementById('contenedor-filas-horario').innerHTML = '';
         guardarDatos();
     });
 }
@@ -139,30 +241,29 @@ function renderizarConfigAsignaturas() {
 
     appData.asignaturas.forEach(asig => {
         let htmlSesiones = '';
-        // Ordenamos las sesiones por hora antes de mostrarlas para que quede bonito
         asig.sesiones.sort((a, b) => a.hora - b.hora).forEach((sesion, index) => {
             const tramo = TRAMOS_HORARIOS[sesion.hora];
             const textoHora = tramo ? `${tramo.inicio} - ${tramo.fin}` : `${sesion.hora}ª Hora`;
 
             htmlSesiones += `
-                <div class="flex justify-between items-center text-sm p-2 bg-slate-50 rounded mt-1 border border-slate-100">
-                    <span class="capitalize font-medium"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} <span class="text-slate-400 mx-1">|</span> ${textoHora}</span>
-                    <button onclick="borrarSesion(${asig.id}, ${index})" class="text-red-400 hover:text-red-600 transition"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="flex justify-between items-center p-2 bg-slate-50 rounded mt-1 border border-slate-100">
+                    <span class="capitalize font-medium text-xs md:text-sm"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} <span class="text-slate-400 mx-1">|</span> ${textoHora}</span>
+                    <button onclick="borrarSesion(${asig.id}, ${index})" class="text-red-400 hover:text-red-600 transition p-2"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             `;
         });
 
         const div = document.createElement('div');
-        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden';
+        div.className = 'bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col relative overflow-hidden';
         div.innerHTML = `
             <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
             <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
-                <div>
-                    <h3 class="text-xl font-bold text-slate-800">${asig.nombre}</h3>
-                    ${asig.profesor ? `<p class="text-sm text-slate-500 mt-1"><i class="fa-solid fa-chalkboard-user mr-1"></i>${asig.profesor}</p>` : ''}
-                    ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-sm text-blue-500 hover:underline mt-1 inline-block"><i class="fa-solid fa-video mr-1"></i>Enlace de clase</a>` : ''}
+                <div class="pr-4">
+                    <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight">${asig.nombre}</h3>
+                    ${asig.profesor ? `<p class="text-xs md:text-sm text-slate-500 mt-1"><i class="fa-solid fa-chalkboard-user mr-1"></i>${asig.profesor}</p>` : ''}
+                    ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-xs md:text-sm text-blue-500 hover:underline mt-1 inline-block"><i class="fa-solid fa-video mr-1"></i>Enlace de clase</a>` : ''}
                 </div>
-                <button onclick="eliminarAsignaturaMaster(${asig.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition bg-red-50" title="Borrar asignatura completa">
+                <button onclick="eliminarAsignaturaMaster(${asig.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition bg-red-50 shrink-0" title="Borrar asignatura completa">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>
@@ -173,19 +274,18 @@ function renderizarConfigAsignaturas() {
             </div>
 
             <div class="mt-4 pt-4 border-t border-slate-100">
-                <form onsubmit="agregarSesion(event, ${asig.id})" class="flex gap-2">
-                    <select id="dia-${asig.id}" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
+                <form onsubmit="agregarSesion(event, ${asig.id})" class="flex flex-col md:flex-row gap-2">
+                    <select id="dia-${asig.id}" required class="w-full md:w-1/3 p-2 text-sm border border-slate-200 rounded">
                         <option value="lunes">Lunes</option><option value="martes">Martes</option>
                         <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
                         <option value="viernes">Viernes</option>
                     </select>
-                    <!-- ACTUALIZADO: Permite elegir del desplegable -->
-                    <select id="hora-${asig.id}" required class="w-1/2 p-2 text-[11px] border border-slate-200 rounded">
+                    <select id="hora-${asig.id}" required class="w-full md:w-1/2 p-2 text-xs border border-slate-200 rounded">
                         <option value="1">15:20 - 16:15</option><option value="2">16:15 - 17:10</option>
                         <option value="3">17:10 - 18:05</option><option value="4">18:05 - 19:00</option>
                         <option value="5">19:15 - 20:10</option><option value="6">20:10 - 21:05</option>
                     </select>
-                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700 transition" title="Añadir bloque">
+                    <button type="submit" class="w-full md:w-auto bg-slate-800 text-white p-2 rounded hover:bg-slate-700 transition" title="Añadir bloque">
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </form>
@@ -225,7 +325,7 @@ window.eliminarAsignaturaMaster = function(idAsig) {
 }
 
 // ==========================================
-// 2. HORARIO AUTOMÁTICO (Idéntico a Captura)
+// 2. HORARIO AUTOMÁTICO (Adaptado a móvil)
 // ==========================================
 function renderizarHorarioAuto() {
     const tablaHorario = document.getElementById('tabla-horario');
@@ -246,7 +346,7 @@ function renderizarHorarioAuto() {
         if (hora === 5) {
             const filaRecreo = document.createElement('tr');
             filaRecreo.innerHTML = `<td colspan="6" class="bg-slate-200 border-y border-slate-300 text-center py-2 shadow-inner">
-                <span class="text-slate-600 font-bold text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> Recreo (19:00 - 19:15)</span>
+                <span class="text-slate-600 font-bold text-[10px] md:text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> Recreo (19:00 - 19:15)</span>
             </td>`;
             tablaHorario.appendChild(filaRecreo);
         }
@@ -254,27 +354,27 @@ function renderizarHorarioAuto() {
         const fila = document.createElement('tr');
         const tramo = TRAMOS_HORARIOS[hora];
 
-        // ACTUALIZADO: Horas apiladas (sin "1ª"), diseño exacto a captura
-        let htmlFila = `<td class="border border-slate-200 bg-white text-center align-middle p-2 w-20 shadow-sm relative z-10">
-            <span class="block font-bold text-slate-800 text-sm leading-tight">${tramo ? tramo.inicio : ''}</span>
-            <span class="block font-bold text-slate-800 text-sm leading-tight">${tramo ? tramo.fin : ''}</span>
+        // Diseño de la columna de horas
+        let htmlFila = `<td class="border border-slate-200 bg-white text-center align-middle p-2 w-16 md:w-20 shadow-sm relative z-10">
+            <span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo ? tramo.inicio : ''}</span>
+            <span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo ? tramo.fin : ''}</span>
         </td>`;
 
         dias.forEach(dia => {
             const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === hora));
 
             if (asigEncontrada) {
-                const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-xs bg-white bg-opacity-50 text-slate-700 py-1 rounded hover:bg-white transition" title="Abrir clase"><i class="fa-solid fa-video text-blue-600"></i> Entrar</a>` : '';
+                const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-[10px] bg-white bg-opacity-50 text-slate-700 py-1 rounded hover:bg-white transition" title="Abrir clase"><i class="fa-solid fa-video text-blue-600"></i></a>` : '';
 
                 htmlFila += `
-                    <td class="border border-slate-200 p-2 h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
+                    <td class="border border-slate-200 p-1 md:p-2 h-20 md:h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
                         <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${asigEncontrada.color}"></div>
-                        <span class="font-bold text-sm block" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
-                        <span class="text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
+                        <span class="font-bold text-[10px] md:text-sm block leading-tight" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
+                        <span class="text-[9px] md:text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
                         ${iconoMeet}
                     </td>`;
             } else {
-                htmlFila += `<td class="border border-slate-200 border-dashed p-2 h-24 text-center align-middle"><span class="text-slate-300 text-xs">Libre</span></td>`;
+                htmlFila += `<td class="border border-slate-200 border-dashed p-2 h-24 text-center align-middle"><span class="text-slate-300 text-[10px]">Libre</span></td>`;
             }
         });
 
@@ -284,7 +384,7 @@ function renderizarHorarioAuto() {
 }
 
 // ==========================================
-// 3. TAREAS (Actualizadas con Fecha Límite)
+// 3. TAREAS (Adaptado a móvil)
 // ==========================================
 const formTarea = document.getElementById('form-tarea');
 
@@ -349,25 +449,25 @@ function renderizarTareas() {
             const partes = tarea.fecha.split('-');
             const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
 
-            badgeFecha = `<span class="ml-3 text-xs ${colorTexto}"><i class="fa-solid ${icono} mr-1"></i>${fechaFormateada}</span>`;
+            badgeFecha = `<span class="ml-2 md:ml-3 text-[10px] md:text-xs ${colorTexto}"><i class="fa-solid ${icono} mr-1"></i>${fechaFormateada}</span>`;
         }
 
         const li = document.createElement('li');
-        li.className = `p-4 flex items-center justify-between transition-all ${tarea.completada ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50'}`;
+        li.className = `p-3 md:p-4 flex items-center justify-between transition-all ${tarea.completada ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50'}`;
         li.innerHTML = `
-            <div class="flex items-center gap-4">
-                <input type="checkbox" ${tarea.completada ? 'checked' : ''} onchange="toggleTarea(${tarea.id})" class="h-6 w-6 text-blue-600 rounded cursor-pointer">
-                <div>
-                    <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-lg">${tarea.titulo}</p>
-                    <p class="text-sm mt-1 flex items-center">
-                        <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide text-white" style="background-color: ${colorEtiqueta}">
+            <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
+                <input type="checkbox" ${tarea.completada ? 'checked' : ''} onchange="toggleTarea(${tarea.id})" class="h-5 w-5 md:h-6 md:w-6 text-blue-600 rounded shrink-0 cursor-pointer">
+                <div class="min-w-0">
+                    <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-sm md:text-lg truncate">${tarea.titulo}</p>
+                    <p class="text-xs mt-1 flex items-center flex-wrap gap-1">
+                        <span class="px-2 py-0.5 rounded font-semibold uppercase tracking-wide text-white text-[9px] md:text-[10px]" style="background-color: ${colorEtiqueta}">
                             ${tarea.asignatura}
                         </span>
                         ${badgeFecha}
                     </p>
                 </div>
             </div>
-            <button onclick="eliminarTarea(${tarea.id})" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash-can"></i></button>
+            <button onclick="eliminarTarea(${tarea.id})" class="text-slate-400 hover:text-red-500 p-2 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
         `;
         listaTareas.appendChild(li);
     });
@@ -384,7 +484,7 @@ window.eliminarTarea = function(id) {
 }
 
 // ==========================================
-// 4. CALIFICACIONES (Enlazadas + Calculadora)
+// 4. CALIFICACIONES (Enlazadas + Calculadora + Móvil)
 // ==========================================
 function renderizarCalificaciones() {
     const contenedor = document.getElementById('contenedor-asignaturas');
@@ -406,12 +506,12 @@ function renderizarCalificaciones() {
         asig.notas.forEach(n => {
             let colorNota = n.valor >= 5 ? 'text-green-600' : 'text-red-500';
             htmlNotas += `
-                <div class="flex justify-between items-center py-2 px-3 hover:bg-slate-50 border-b border-slate-100 rounded">
-                    <div>
-                        <p class="text-sm font-medium text-slate-700">${n.nombre}</p>
-                        <p class="text-xs text-slate-400">Peso: ${n.peso}%</p>
+                <div class="flex justify-between items-center py-2 px-2 hover:bg-slate-50 border-b border-slate-100 rounded">
+                    <div class="truncate pr-2">
+                        <p class="text-xs md:text-sm font-medium text-slate-700 truncate">${n.nombre}</p>
+                        <p class="text-[10px] text-slate-400">Peso: ${n.peso}%</p>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3 shrink-0">
                         <span class="font-bold ${colorNota}">${n.valor}</span>
                         <button onclick="eliminarNota(${asig.id}, ${n.id})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -419,41 +519,41 @@ function renderizarCalificaciones() {
         });
 
         const htmlCalculadora = `
-            <div class="mt-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                <h4 class="text-xs font-bold uppercase text-blue-700 mb-3"><i class="fa-solid fa-bullseye mr-1"></i> Calculadora Objetivo</h4>
+            <div class="mt-4 p-3 md:p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                <h4 class="text-[10px] md:text-xs font-bold uppercase text-blue-700 mb-2"><i class="fa-solid fa-bullseye mr-1"></i> Calculadora Objetivo</h4>
                 <form onsubmit="calcularObjetivo(event, ${asig.id}, ${media})" class="flex gap-2 items-center">
-                    <input type="number" step="0.1" min="0" max="10" id="calc-meta-${asig.id}" placeholder="Nota que deseas" required class="w-full p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none">
-                    <input type="number" step="1" min="1" max="100" id="calc-peso-${asig.id}" placeholder="Peso %" required class="w-24 p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none" title="Cuánto vale este examen del total de la nota">
-                    <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition shadow-sm text-xs font-bold">Calcular</button>
+                    <input type="number" step="0.1" min="0" max="10" id="calc-meta-${asig.id}" placeholder="Nota" required class="w-full p-1.5 md:p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none">
+                    <input type="number" step="1" min="1" max="100" id="calc-peso-${asig.id}" placeholder="Peso %" required class="w-16 md:w-20 p-1.5 md:p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none" title="Cuánto vale este examen del total de la nota">
+                    <button type="submit" class="bg-blue-600 text-white px-2 py-1.5 md:py-2 rounded hover:bg-blue-700 transition shadow-sm font-bold text-xs"><i class="fa-solid fa-calculator"></i></button>
                 </form>
-                <div id="calc-resultado-${asig.id}" class="mt-3 text-sm hidden"></div>
+                <div id="calc-resultado-${asig.id}" class="mt-2 text-xs md:text-sm hidden"></div>
             </div>
         `;
 
         const div = document.createElement('div');
-        div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full relative overflow-hidden';
+        div.className = 'bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full relative overflow-hidden';
         div.innerHTML = `
             <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
             <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
-                <h3 class="text-xl font-bold text-slate-800">${asig.nombre}</h3>
-                <div class="text-right ml-4">
-                    <span class="block text-3xl font-black ${colorMedia} leading-none">${media}</span>
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-2">${asig.nombre}</h3>
+                <div class="text-right shrink-0">
+                    <span class="block text-2xl md:text-3xl font-black ${colorMedia} leading-none">${media}</span>
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Ponderada</span>
                 </div>
             </div>
             
             <div class="flex-1 mb-4">
-                ${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}
+                ${htmlNotas || '<p class="text-xs md:text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}
                 ${htmlCalculadora}
             </div>
 
-            <div class="mt-auto pt-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl border-t border-slate-100">
-                <h4 class="text-[10px] font-bold uppercase text-slate-400 mb-2">Añadir nueva nota real</h4>
+            <div class="mt-auto pt-4 bg-slate-50 -mx-4 -mb-4 md:-mx-6 md:-mb-6 p-4 md:p-6 rounded-b-xl border-t border-slate-100">
+                <h4 class="text-[9px] md:text-[10px] font-bold uppercase text-slate-400 mb-2">Añadir nueva nota real</h4>
                 <form onsubmit="agregarNota(event, ${asig.id})" class="flex gap-2">
-                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Práctica 1" required class="w-1/2 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
-                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
-                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
-                    <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700"><i class="fa-solid fa-plus"></i></button>
+                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Examen" required class="w-1/2 p-2 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
+                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
+                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="%" required class="w-1/4 p-2 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
+                    <button type="submit" class="bg-slate-800 text-white px-2 rounded hover:bg-slate-700"><i class="fa-solid fa-plus"></i></button>
                 </form>
             </div>
         `;
@@ -493,14 +593,14 @@ window.calcularObjetivo = function(e, idAsig, mediaActualStr) {
 
     divResultado.classList.remove('hidden');
     if (notaNecesaria > 10) {
-        divResultado.innerHTML = `<i class="fa-solid fa-face-dizzy mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. Matemáticamente imposible.`;
-        divResultado.className = "mt-3 text-sm p-3 bg-red-100 text-red-700 rounded border border-red-200";
+        divResultado.innerHTML = `Necesitas <b>${notaNecesaria}</b> (Imposible).`;
+        divResultado.className = "mt-2 text-xs p-2 bg-red-100 text-red-700 rounded border border-red-200";
     } else if (notaNecesaria <= 0) {
-        divResultado.innerHTML = `<i class="fa-solid fa-party-horn mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. ¡Ya tienes el ${meta} asegurado!`;
-        divResultado.className = "mt-3 text-sm p-3 bg-green-100 text-green-700 rounded border border-green-200";
+        divResultado.innerHTML = `¡Ya tienes el ${meta} asegurado!`;
+        divResultado.className = "mt-2 text-xs p-2 bg-green-100 text-green-700 rounded border border-green-200";
     } else {
-        divResultado.innerHTML = `<i class="fa-solid fa-pen-nib mr-1"></i> Para tener un ${meta}, necesitas sacar un <b>${notaNecesaria}</b>.`;
-        divResultado.className = "mt-3 text-sm p-3 bg-blue-100 text-blue-800 rounded border border-blue-200";
+        divResultado.innerHTML = `Necesitas sacar un <b>${notaNecesaria}</b>.`;
+        divResultado.className = "mt-2 text-xs p-2 bg-blue-100 text-blue-800 rounded border border-blue-200";
     }
 }
 
@@ -547,84 +647,6 @@ window.reiniciarCurso = function() {
 }
 
 // ==========================================
-// NUEVO MÓDULO: PERSONALIZACIÓN Y ONBOARDING
-// ==========================================
-function comprobarPerfil() {
-    const modalBienvenida = document.getElementById('modal-bienvenida');
-    if (!appData.perfil) {
-        if(modalBienvenida) modalBienvenida.classList.remove('hidden');
-    } else {
-        aplicarPersonalizacion();
-    }
-}
-
-window.guardarPerfilPersonalizado = function(e) {
-    e.preventDefault();
-    const nombre = document.getElementById('perfil-nombre').value.trim();
-    const instituto = document.getElementById('perfil-instituto').value.trim();
-    const ciudad = document.getElementById('perfil-ciudad').value.trim();
-
-    // NUEVO BANNER: Usamos IA generativa en tiempo real para crear un paisaje sin marcas de agua.
-    const promptParams = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
-    const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptParams)}?width=1600&height=900&nologo=true`;
-
-    appData.perfil = { nombre: nombre, instituto: instituto, ciudad: ciudad, banner: urlBanner };
-    guardarDatos();
-    document.getElementById('modal-bienvenida').classList.add('hidden');
-    aplicarPersonalizacion();
-}
-
-window.detectarUbicacion = function() {
-    const inputCiudad = document.getElementById('perfil-ciudad');
-    if (!navigator.geolocation) { alert("Tu navegador no soporta la geolocalización."); return; }
-
-    const textoOriginal = inputCiudad.value;
-    inputCiudad.value = "Detectando ubicación...";
-    inputCiudad.disabled = true;
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
-            const data = await response.json();
-            const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
-            const provincia = data.address.state || data.address.province || "";
-            inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
-        } catch (error) {
-            inputCiudad.value = textoOriginal;
-            alert("Error al obtener la ciudad.");
-        } finally {
-            inputCiudad.disabled = false;
-        }
-    }, (error) => {
-        inputCiudad.value = textoOriginal;
-        inputCiudad.disabled = false;
-    });
-}
-
-window.abrirEdicionPerfil = function() {
-    if (appData.perfil) {
-        document.getElementById('perfil-nombre').value = appData.perfil.nombre;
-        document.getElementById('perfil-instituto').value = appData.perfil.instituto;
-        document.getElementById('perfil-ciudad').value = appData.perfil.ciudad;
-    }
-    document.getElementById('modal-bienvenida').classList.remove('hidden');
-}
-
-function aplicarPersonalizacion() {
-    if (!appData.perfil) return;
-    const textInstituto = document.getElementById('sidebar-instituto');
-    if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
-
-    const textSaludo = document.getElementById('dash-saludo');
-    const textUbicacion = document.getElementById('dash-ubicacion');
-    const banner = document.getElementById('dash-banner');
-
-    if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
-    if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
-    if(banner && appData.perfil.banner) { banner.style.backgroundImage = `url('${appData.perfil.banner}')`; }
-}
-
-// ==========================================
 // RENDERIZADO MAESTRO
 // ==========================================
 function actualizarUI() {
@@ -667,30 +689,28 @@ function renderizarDashboard() {
         contadorClases.textContent = clasesHoy.length;
 
         if (clasesHoy.length === 0) {
-            contenedorClases.innerHTML = `<p class="text-slate-400 italic text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">No hay clases programadas para hoy. 🎉</p>`;
+            contenedorClases.innerHTML = `<p class="text-slate-400 italic text-center py-6 text-sm">No hay clases programadas para hoy. 🎉</p>`;
         } else {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
-                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200"><i class="fa-solid fa-video mr-1"></i> Entrar</a>` : '';
-
-                // ACTUALIZADO: Usa el diccionario global TRAMOS_HORARIOS
+                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200 shrink-0">Entrar</a>` : '';
                 const tramo = TRAMOS_HORARIOS[clase.hora];
 
                 htmlClases += `
-                    <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden group hover:bg-white hover:shadow-sm transition">
+                    <div class="flex items-center gap-3 p-2 md:p-3 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden group hover:bg-white hover:shadow-sm transition">
                         <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${clase.color}"></div>
-                        <div class="w-14 h-14 flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col justify-center items-center ml-2">
-                            <span class="text-[9px] text-slate-400 font-bold uppercase">${clase.hora}ª HORA</span>
-                            <span class="text-sm font-black text-slate-700">${tramo ? tramo.inicio : clase.hora}</span>
+                        <div class="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col justify-center items-center ml-1 md:ml-2">
+                            <span class="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase">${clase.hora}ª H</span>
+                            <span class="text-xs md:text-sm font-black text-slate-700">${tramo ? tramo.inicio : clase.hora}</span>
                         </div>
-                        <div class="flex-1">
-                            <h4 class="font-bold text-slate-800 leading-tight" style="color: ${clase.color}">${clase.nombre}</h4>
-                            <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-slate-800 text-sm md:text-base leading-tight truncate" style="color: ${clase.color}">${clase.nombre}</h4>
+                            <p class="text-[9px] md:text-[11px] text-slate-500 mt-1 truncate">
                                 <span><i class="fa-regular fa-clock mr-1 opacity-75"></i>${tramo ? tramo.inicio + ' - ' + tramo.fin : ''}</span>
                                 ${clase.profesor ? `<span>|</span> <span><i class="fa-solid fa-user-tie mr-1 opacity-75"></i>${clase.profesor}</span>` : ''}
                             </p>
                         </div>
-                        <div>${btnMeet}</div>
+                        ${btnMeet}
                     </div>
                 `;
             });
@@ -706,7 +726,7 @@ function renderizarDashboard() {
         dashPendientes.textContent = pendientes.length;
 
         if (pendientes.length === 0) {
-            listaTareasDash.innerHTML = `<li class="py-8 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2">Todo al día. No hay tareas pendientes.</li>`;
+            listaTareasDash.innerHTML = `<li class="py-6 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2 text-sm">Todo al día. No hay tareas pendientes.</li>`;
         } else {
             pendientes.sort((a, b) => {
                 if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
@@ -728,17 +748,17 @@ function renderizarDashboard() {
                     const colorBadge = esVencida ? 'text-red-600 bg-red-100' : 'text-slate-600 bg-slate-100';
                     const partes = tarea.fecha.split('-');
                     const fechaCorta = `${partes[2]}/${partes[1]}`;
-                    badgeFechaDash = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${colorBadge}">${fechaCorta}</span>`;
+                    badgeFechaDash = `<span class="ml-1 md:ml-2 px-1 py-0.5 rounded text-[9px] md:text-[10px] font-bold ${colorBadge}">${fechaCorta}</span>`;
                 }
 
                 htmlTareas += `
-                    <li class="py-3 flex justify-between items-center group">
-                        <div class="flex items-center gap-3 overflow-hidden flex-1">
-                            <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div>
-                            <span class="text-slate-700 font-medium truncate flex-1 flex items-center">${tarea.titulo} ${badgeFechaDash}</span>
+                    <li class="py-2.5 md:py-3 flex justify-between items-center group border-b border-slate-50 last:border-0">
+                        <div class="flex items-center gap-2 overflow-hidden flex-1">
+                            <div class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div>
+                            <span class="text-slate-700 text-xs md:text-sm font-medium truncate flex-1 flex items-center">${tarea.titulo} ${badgeFechaDash}</span>
                         </div>
-                        <button onclick="toggleTarea(${tarea.id})" class="opacity-0 group-hover:opacity-100 flex-shrink-0 ml-4 text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-100 transition border border-green-200 font-bold">
-                            <i class="fa-solid fa-check mr-1"></i> Hecho
+                        <button onclick="toggleTarea(${tarea.id})" class="text-[10px] md:text-xs bg-green-50 text-green-600 px-2 py-1 md:px-3 md:py-1.5 rounded border border-green-200 ml-2 shrink-0">
+                            <i class="fa-solid fa-check"></i>
                         </button>
                     </li>
                 `;
