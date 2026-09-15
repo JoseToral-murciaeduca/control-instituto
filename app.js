@@ -190,7 +190,16 @@ function renderizarHorarioAuto() {
     tablaHorario.innerHTML = '';
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 
-    // Cálculo inteligente de filas: busca si algún día terminas más tarde de la 6ª hora
+    // Tus horas exactas del turno de tarde
+    const TRAMOS_HORARIOS = {
+        1: "15:20 - 16:15",
+        2: "16:15 - 17:10",
+        3: "17:10 - 18:05",
+        4: "18:05 - 19:00",
+        5: "19:15 - 20:10",
+        6: "20:10 - 21:05"
+    };
+
     let maxHora = 6;
     appData.asignaturas.forEach(a => {
         a.sesiones.forEach(s => {
@@ -198,10 +207,25 @@ function renderizarHorarioAuto() {
         });
     });
 
-    // Construye tantas filas como maxHora hayamos encontrado
     for (let hora = 1; hora <= maxHora; hora++) {
+
+        // ¡Magia! Insertar la franja del recreo justo antes de imprimir la 5ª hora
+        if (hora === 5) {
+            const filaRecreo = document.createElement('tr');
+            filaRecreo.innerHTML = `<td colspan="6" class="bg-slate-200 border-y border-slate-300 text-center py-2 shadow-inner">
+                <span class="text-slate-600 font-bold text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> Recreo (19:00 - 19:15)</span>
+            </td>`;
+            tablaHorario.appendChild(filaRecreo);
+        }
+
         const fila = document.createElement('tr');
-        let htmlFila = `<td class="border border-slate-200 bg-slate-50 font-bold text-slate-400 text-center align-middle">${hora}ª</td>`;
+        const rangoHora = TRAMOS_HORARIOS[hora] || "";
+
+        // Columna de la izquierda con la hora y los minutos
+        let htmlFila = `<td class="border border-slate-200 bg-slate-50 text-center align-middle p-2">
+            <span class="block font-black text-slate-500 text-lg">${hora}ª</span>
+            <span class="block text-[10px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">${rangoHora}</span>
+        </td>`;
 
         dias.forEach(dia => {
             const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === hora));
@@ -658,10 +682,15 @@ function renderizarDashboard() {
     const contenedorClases = document.getElementById('lista-clases-hoy');
     const contadorClases = document.getElementById('dash-clases-hoy');
 
+    // Diccionario de horas para mostrar en el Dashboard
+    const TRAMOS_HORARIOS = {
+        1: "15:20 - 16:15", 2: "16:15 - 17:10", 3: "17:10 - 18:05",
+        4: "18:05 - 19:00", 5: "19:15 - 20:10", 6: "20:10 - 21:05"
+    };
+
     if (contenedorClases && contadorClases) {
         let clasesHoy = [];
 
-        // Buscar clases que coincidan con el día de hoy
         appData.asignaturas.forEach(asig => {
             asig.sesiones.forEach(sesion => {
                 if (sesion.dia === diaHoy) {
@@ -670,7 +699,6 @@ function renderizarDashboard() {
             });
         });
 
-        // Ordenar las clases de 1ª hora a 6ª hora
         clasesHoy.sort((a, b) => a.hora - b.hora);
         contadorClases.textContent = clasesHoy.length;
 
@@ -680,6 +708,8 @@ function renderizarDashboard() {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
                 const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200"><i class="fa-solid fa-video mr-1"></i> Entrar</a>` : '';
+                const rangoHora = TRAMOS_HORARIOS[clase.hora] || "";
+
                 htmlClases += `
                     <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden group hover:bg-white hover:shadow-sm transition">
                         <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${clase.color}"></div>
@@ -689,7 +719,10 @@ function renderizarDashboard() {
                         </div>
                         <div class="flex-1">
                             <h4 class="font-bold text-slate-800 leading-tight" style="color: ${clase.color}">${clase.nombre}</h4>
-                            <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user-tie mr-1 opacity-50"></i>${clase.profesor || 'Sin profesor'}</p>
+                            <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
+                                <span><i class="fa-regular fa-clock mr-1 opacity-75"></i>${rangoHora}</span>
+                                ${clase.profesor ? `<span>|</span> <span><i class="fa-solid fa-user-tie mr-1 opacity-75"></i>${clase.profesor}</span>` : ''}
+                            </p>
                         </div>
                         <div>${btnMeet}</div>
                     </div>
