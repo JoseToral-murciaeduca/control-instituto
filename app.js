@@ -3,10 +3,20 @@
 // ==========================================
 const STORAGE_KEY = 'control_instituto_db';
 
+// DICCIONARIO MAESTRO DE HORARIOS (Turno de tarde - Global)
+const TRAMOS_HORARIOS = {
+    1: { inicio: "15:20", fin: "16:15" },
+    2: { inicio: "16:15", fin: "17:10" },
+    3: { inicio: "17:10", fin: "18:05" },
+    4: { inicio: "18:05", fin: "19:00" },
+    5: { inicio: "19:15", fin: "20:10" },
+    6: { inicio: "20:10", fin: "21:05" }
+};
+
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     tareas: [],
     asignaturas: [],
-    perfil: null // NUEVO: Si es null, pediremos los datos
+    perfil: null // Si es null, pediremos los datos
 };
 
 // Migración de seguridad por si tenías datos antiguos
@@ -44,13 +54,22 @@ window.agregarFilaHorarioFormulario = function() {
     const div = document.createElement('div');
     div.id = idFila;
     div.className = 'flex gap-3 items-center animate-fade-in';
+    // ACTUALIZADO: Select desplegable con las franjas horarias exactas
     div.innerHTML = `
         <select class="select-dia-nuevo w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white">
             <option value="lunes">Lunes</option><option value="martes">Martes</option>
             <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
             <option value="viernes">Viernes</option>
         </select>
-        <input type="number" min="1" max="15" placeholder="Hora (Ej: 1, 2, 7...)" class="input-hora-nuevo w-1/3 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white" required>
+        <select class="input-hora-nuevo w-1/2 p-2 text-sm border border-slate-200 rounded focus:ring-2 focus:ring-orange-500 bg-white" required>
+            <option value="" disabled selected>Elige franja horaria...</option>
+            <option value="1">15:20 - 16:15</option>
+            <option value="2">16:15 - 17:10</option>
+            <option value="3">17:10 - 18:05</option>
+            <option value="4">18:05 - 19:00</option>
+            <option value="5">19:15 - 20:10</option>
+            <option value="6">20:10 - 21:05</option>
+        </select>
         <button type="button" onclick="document.getElementById('${idFila}').remove()" class="text-red-400 hover:text-red-600 p-2 transition bg-white rounded border border-slate-200" title="Borrar fila">
             <i class="fa-solid fa-trash-can"></i>
         </button>
@@ -105,9 +124,12 @@ function renderizarConfigAsignaturas() {
         let htmlSesiones = '';
         // Ordenamos las sesiones por hora antes de mostrarlas para que quede bonito
         asig.sesiones.sort((a, b) => a.hora - b.hora).forEach((sesion, index) => {
+            const tramo = TRAMOS_HORARIOS[sesion.hora];
+            const textoHora = tramo ? `${tramo.inicio} - ${tramo.fin}` : `${sesion.hora}ª Hora`;
+
             htmlSesiones += `
                 <div class="flex justify-between items-center text-sm p-2 bg-slate-50 rounded mt-1 border border-slate-100">
-                    <span class="capitalize font-medium"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} - ${sesion.hora}ª Hora</span>
+                    <span class="capitalize font-medium"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} <span class="text-slate-400 mx-1">|</span> ${textoHora}</span>
                     <button onclick="borrarSesion(${asig.id}, ${index})" class="text-red-400 hover:text-red-600 transition"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             `;
@@ -135,13 +157,17 @@ function renderizarConfigAsignaturas() {
 
             <div class="mt-4 pt-4 border-t border-slate-100">
                 <form onsubmit="agregarSesion(event, ${asig.id})" class="flex gap-2">
-                    <select id="dia-${asig.id}" required class="w-1/2 p-2 text-sm border border-slate-200 rounded">
+                    <select id="dia-${asig.id}" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
                         <option value="lunes">Lunes</option><option value="martes">Martes</option>
                         <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
                         <option value="viernes">Viernes</option>
                     </select>
-                    <!-- Permite introducir cualquier hora libremente -->
-                    <input type="number" id="hora-${asig.id}" min="1" max="15" placeholder="Hora (ej. 1)" required class="w-1/3 p-2 text-sm border border-slate-200 rounded">
+                    <!-- ACTUALIZADO: Permite elegir del desplegable -->
+                    <select id="hora-${asig.id}" required class="w-1/2 p-2 text-[11px] border border-slate-200 rounded">
+                        <option value="1">15:20 - 16:15</option><option value="2">16:15 - 17:10</option>
+                        <option value="3">17:10 - 18:05</option><option value="4">18:05 - 19:00</option>
+                        <option value="5">19:15 - 20:10</option><option value="6">20:10 - 21:05</option>
+                    </select>
                     <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700 transition" title="Añadir bloque">
                         <i class="fa-solid fa-plus"></i>
                     </button>
@@ -182,23 +208,13 @@ window.eliminarAsignaturaMaster = function(idAsig) {
 }
 
 // ==========================================
-// 2. HORARIO AUTOMÁTICO (Solo lectura, adaptativo)
+// 2. HORARIO AUTOMÁTICO (Idéntico a Captura)
 // ==========================================
 function renderizarHorarioAuto() {
     const tablaHorario = document.getElementById('tabla-horario');
     if (!tablaHorario) return;
     tablaHorario.innerHTML = '';
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
-
-    // Tus horas exactas del turno de tarde
-    const TRAMOS_HORARIOS = {
-        1: "15:20 - 16:15",
-        2: "16:15 - 17:10",
-        3: "17:10 - 18:05",
-        4: "18:05 - 19:00",
-        5: "19:15 - 20:10",
-        6: "20:10 - 21:05"
-    };
 
     let maxHora = 6;
     appData.asignaturas.forEach(a => {
@@ -209,7 +225,7 @@ function renderizarHorarioAuto() {
 
     for (let hora = 1; hora <= maxHora; hora++) {
 
-        // ¡Magia! Insertar la franja del recreo justo antes de imprimir la 5ª hora
+        // Insertar la franja del recreo justo antes de imprimir la 5ª hora
         if (hora === 5) {
             const filaRecreo = document.createElement('tr');
             filaRecreo.innerHTML = `<td colspan="6" class="bg-slate-200 border-y border-slate-300 text-center py-2 shadow-inner">
@@ -219,12 +235,12 @@ function renderizarHorarioAuto() {
         }
 
         const fila = document.createElement('tr');
-        const rangoHora = TRAMOS_HORARIOS[hora] || "";
+        const tramo = TRAMOS_HORARIOS[hora];
 
-        // Columna de la izquierda con la hora y los minutos
-        let htmlFila = `<td class="border border-slate-200 bg-slate-50 text-center align-middle p-2">
-            <span class="block font-black text-slate-500 text-lg">${hora}ª</span>
-            <span class="block text-[10px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">${rangoHora}</span>
+        // ACTUALIZADO: Horas apiladas (sin "1ª"), diseño exacto a captura
+        let htmlFila = `<td class="border border-slate-200 bg-white text-center align-middle p-2 w-20 shadow-sm relative z-10">
+            <span class="block font-bold text-slate-800 text-sm leading-tight">${tramo ? tramo.inicio : ''}</span>
+            <span class="block font-bold text-slate-800 text-sm leading-tight">${tramo ? tramo.fin : ''}</span>
         </td>`;
 
         dias.forEach(dia => {
@@ -262,7 +278,7 @@ if(formTarea) {
             id: Date.now(),
             titulo: document.getElementById('input-tarea').value,
             asignatura: document.getElementById('input-asignatura').value,
-            fecha: document.getElementById('input-fecha-tarea').value, // NUEVO CAMPO
+            fecha: document.getElementById('input-fecha-tarea').value,
             completada: false
         });
         formTarea.reset();
@@ -292,18 +308,14 @@ function renderizarTareas() {
         listaTareas.innerHTML = '<li class="p-8 text-center text-slate-500">No tienes tareas pendientes. ¡Buen trabajo!</li>';
     }
 
-    // ORDENAR TAREAS DE LA VISTA PRINCIPAL
     const tareasOrdenadas = [...appData.tareas].sort((a, b) => {
-        // Primero las no completadas, luego las completadas
         if (a.completada !== b.completada) return a.completada ? 1 : -1;
-        // Luego ordenamos por fecha (las más antiguas/próximas primero)
         if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
         if (a.fecha && !b.fecha) return -1;
         if (!a.fecha && b.fecha) return 1;
         return 0;
     });
 
-    // Conseguir la fecha de hoy para comparar en formato YYYY-MM-DD
     const hoyStr = new Date().toISOString().split('T')[0];
 
     tareasOrdenadas.forEach(tarea => {
@@ -312,14 +324,13 @@ function renderizarTareas() {
         const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
         const colorEtiqueta = asigInfo ? asigInfo.color : '#94a3b8';
 
-        // LÓGICA DE LA FECHA
         let badgeFecha = '';
         if (tarea.fecha) {
-            const esVencida = tarea.fecha <= hoyStr; // Es hoy o ya pasó
+            const esVencida = tarea.fecha <= hoyStr;
             const colorTexto = esVencida && !tarea.completada ? 'text-red-500 font-bold' : 'text-slate-500';
             const icono = esVencida && !tarea.completada ? 'fa-circle-exclamation' : 'fa-calendar';
             const partes = tarea.fecha.split('-');
-            const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`; // DD/MM/YYYY
+            const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
 
             badgeFecha = `<span class="ml-3 text-xs ${colorTexto}"><i class="fa-solid ${icono} mr-1"></i>${fechaFormateada}</span>`;
         }
@@ -390,7 +401,6 @@ function renderizarCalificaciones() {
                 </div>`;
         });
 
-        // BLOQUE NUEVO: HTML de la Calculadora Objetivo
         const htmlCalculadora = `
             <div class="mt-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                 <h4 class="text-xs font-bold uppercase text-blue-700 mb-3"><i class="fa-solid fa-bullseye mr-1"></i> Calculadora Objetivo</h4>
@@ -453,31 +463,23 @@ window.eliminarNota = function(idAsig, idNota) {
     if(asig) { asig.notas = asig.notas.filter(n => n.id !== idNota); guardarDatos(); }
 }
 
-// BLOQUE NUEVO: Lógica Matemática de la Calculadora
 window.calcularObjetivo = function(e, idAsig, mediaActualStr) {
     e.preventDefault();
     const meta = parseFloat(document.getElementById(`calc-meta-${idAsig}`).value);
     const pesoFinal = parseFloat(document.getElementById(`calc-peso-${idAsig}`).value);
     const divResultado = document.getElementById(`calc-resultado-${idAsig}`);
-
     const mediaActual = parseFloat(mediaActualStr) || 0;
-
-    // Fórmula: Calculamos cuántos puntos ya tenemos asegurados basándonos en el % restante
     const pesoRestante = 100 - pesoFinal;
     const puntosActuales = mediaActual * (pesoRestante / 100);
-
-    // Calculamos qué nota exacta necesitamos en ese % final para llegar a la meta
     let notaNecesaria = (meta - puntosActuales) / (pesoFinal / 100);
     notaNecesaria = notaNecesaria.toFixed(2);
 
-    // Mostramos el resultado con diferentes colores según la dificultad
     divResultado.classList.remove('hidden');
-
     if (notaNecesaria > 10) {
-        divResultado.innerHTML = `<i class="fa-solid fa-face-dizzy mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. Matemáticamente imposible (máx. 10).`;
+        divResultado.innerHTML = `<i class="fa-solid fa-face-dizzy mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. Matemáticamente imposible.`;
         divResultado.className = "mt-3 text-sm p-3 bg-red-100 text-red-700 rounded border border-red-200";
     } else if (notaNecesaria <= 0) {
-        divResultado.innerHTML = `<i class="fa-solid fa-party-horn mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. ¡Ya tienes el ${meta} asegurado aunque saques un 0!`;
+        divResultado.innerHTML = `<i class="fa-solid fa-party-horn mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. ¡Ya tienes el ${meta} asegurado!`;
         divResultado.className = "mt-3 text-sm p-3 bg-green-100 text-green-700 rounded border border-green-200";
     } else {
         divResultado.innerHTML = `<i class="fa-solid fa-pen-nib mr-1"></i> Para tener un ${meta}, necesitas sacar un <b>${notaNecesaria}</b>.`;
@@ -516,20 +518,12 @@ window.procesarImportacion = function(event) {
     lector.readAsText(archivo);
 }
 
-// REINICIO TOTAL (Doble confirmación de seguridad)
 window.reiniciarCurso = function() {
-    // Primera confirmación normal
-    const primeraAlerta = confirm("⚠️ ATENCIÓN: Estás a punto de borrar TODAS tus asignaturas, horarios, notas y tareas.\n\nEsta acción NO se puede deshacer a menos que tengas un backup exportado.\n\n¿Estás completamente seguro de que quieres continuar?");
-
+    const primeraAlerta = confirm("⚠️ ATENCIÓN: Estás a punto de borrar TODAS tus asignaturas, horarios, notas y tareas.\n\n¿Continuar?");
     if (primeraAlerta) {
-        // Segunda confirmación (para evitar clics accidentales dobles)
-        const segundaAlerta = confirm("🚨 ÚLTIMO AVISO 🚨\n\n¿De verdad quieres empezar un curso nuevo y perder todo tu historial de este navegador?");
-
+        const segundaAlerta = confirm("🚨 ÚLTIMO AVISO 🚨\n\n¿De verdad quieres perder todo tu historial?");
         if (segundaAlerta) {
-            // Borramos la clave del LocalStorage directamente
             localStorage.removeItem(STORAGE_KEY);
-
-            // Recargamos la página web. Al cargar, como no hay datos, el propio script inicializará todo a cero.
             window.location.reload();
         }
     }
@@ -540,10 +534,8 @@ window.reiniciarCurso = function() {
 // ==========================================
 function comprobarPerfil() {
     const modalBienvenida = document.getElementById('modal-bienvenida');
-
-    // Si no hay perfil guardado, mostramos la ventana obligatoria
     if (!appData.perfil) {
-        modalBienvenida.classList.remove('hidden');
+        if(modalBienvenida) modalBienvenida.classList.remove('hidden');
     } else {
         aplicarPersonalizacion();
     }
@@ -551,75 +543,44 @@ function comprobarPerfil() {
 
 window.guardarPerfilPersonalizado = function(e) {
     e.preventDefault();
-
     const nombre = document.getElementById('perfil-nombre').value.trim();
     const instituto = document.getElementById('perfil-instituto').value.trim();
     const ciudad = document.getElementById('perfil-ciudad').value.trim();
-
-    // Usamos Picsum Photos para generar fondos aleatorios de alta calidad,
-    // añadiendo un "seed" (semilla) basado en tu nombre para que siempre salga 
-    // la misma imagen para ti, dando consistencia a tu perfil.
     const urlBanner = `https://picsum.photos/seed/${encodeURIComponent(nombre)}/1600/900`;
 
-    appData.perfil = {
-        nombre: nombre,
-        instituto: instituto,
-        ciudad: ciudad,
-        banner: urlBanner
-    };
-
+    appData.perfil = { nombre: nombre, instituto: instituto, ciudad: ciudad, banner: urlBanner };
     guardarDatos();
     document.getElementById('modal-bienvenida').classList.add('hidden');
     aplicarPersonalizacion();
 }
 
-// NUEVA FUNCIÓN: Geolocalización Inversa
 window.detectarUbicacion = function() {
     const inputCiudad = document.getElementById('perfil-ciudad');
+    if (!navigator.geolocation) { alert("Tu navegador no soporta la geolocalización."); return; }
 
-    // 1. Comprobar si el dispositivo tiene GPS/Ubicación
-    if (!navigator.geolocation) {
-        alert("Tu navegador no soporta la geolocalización.");
-        return;
-    }
-
-    // Efecto visual de carga
     const textoOriginal = inputCiudad.value;
     inputCiudad.value = "Detectando ubicación...";
     inputCiudad.disabled = true;
 
-    // 2. Pedir coordenadas al navegador
     navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-
         try {
-            // 3. Traducir coordenadas a ciudad usando OpenStreetMap (Gratis y sin API Key)
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
             const data = await response.json();
-
-            // OpenStreetMap devuelve muchos datos, buscamos el pueblo, ciudad o municipio
             const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
             const provincia = data.address.state || data.address.province || "";
-
             inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
         } catch (error) {
-            console.error("Error al conectar con el satélite:", error);
             inputCiudad.value = textoOriginal;
-            alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
+            alert("Error al obtener la ciudad.");
         } finally {
             inputCiudad.disabled = false;
         }
     }, (error) => {
-        // Si el usuario rechaza el permiso o falla el GPS
-        console.warn("Error de GPS:", error);
         inputCiudad.value = textoOriginal;
         inputCiudad.disabled = false;
-        alert("No has dado permiso o hay un error con la ubicación. Por favor, escríbela a mano.");
     });
 }
 
-// NUEVA FUNCIÓN: Para poder editar el perfil más tarde
 window.abrirEdicionPerfil = function() {
     if (appData.perfil) {
         document.getElementById('perfil-nombre').value = appData.perfil.nombre;
@@ -631,23 +592,16 @@ window.abrirEdicionPerfil = function() {
 
 function aplicarPersonalizacion() {
     if (!appData.perfil) return;
-
-    // 1. Personalizar el Menú Lateral
     const textInstituto = document.getElementById('sidebar-instituto');
     if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
 
-    // 2. Personalizar el Dashboard
     const textSaludo = document.getElementById('dash-saludo');
     const textUbicacion = document.getElementById('dash-ubicacion');
     const banner = document.getElementById('dash-banner');
 
     if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
     if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
-
-    // Aplicamos la imagen de fondo si la hay
-    if(banner && appData.perfil.banner) {
-        banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
-    }
+    if(banner && appData.perfil.banner) { banner.style.backgroundImage = `url('${appData.perfil.banner}')`; }
 }
 
 // ==========================================
@@ -670,27 +624,17 @@ cambiarSeccion('dashboard');
 // 6. DASHBOARD INTELIGENTE
 // ==========================================
 function renderizarDashboard() {
-    // 1. Calcular el día actual (0=Domingo, 1=Lunes...)
     const diasJS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
     const diaHoy = diasJS[new Date().getDay()];
 
-    // Mostrar el día en el título (Si es finde, mostramos "Fin de semana")
     const spanDia = document.getElementById('dash-dia-actual');
     if(spanDia) spanDia.textContent = (diaHoy === 'sabado' || diaHoy === 'domingo') ? 'Fin de semana' : diaHoy;
 
-    // 2. RENDERIZAR CLASES DE HOY
     const contenedorClases = document.getElementById('lista-clases-hoy');
     const contadorClases = document.getElementById('dash-clases-hoy');
 
-    // Diccionario de horas para mostrar en el Dashboard
-    const TRAMOS_HORARIOS = {
-        1: "15:20 - 16:15", 2: "16:15 - 17:10", 3: "17:10 - 18:05",
-        4: "18:05 - 19:00", 5: "19:15 - 20:10", 6: "20:10 - 21:05"
-    };
-
     if (contenedorClases && contadorClases) {
         let clasesHoy = [];
-
         appData.asignaturas.forEach(asig => {
             asig.sesiones.forEach(sesion => {
                 if (sesion.dia === diaHoy) {
@@ -708,19 +652,21 @@ function renderizarDashboard() {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
                 const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200"><i class="fa-solid fa-video mr-1"></i> Entrar</a>` : '';
-                const rangoHora = TRAMOS_HORARIOS[clase.hora] || "";
+
+                // ACTUALIZADO: Usa el diccionario global TRAMOS_HORARIOS
+                const tramo = TRAMOS_HORARIOS[clase.hora];
 
                 htmlClases += `
                     <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden group hover:bg-white hover:shadow-sm transition">
                         <div class="absolute left-0 top-0 bottom-0 w-1.5" style="background-color: ${clase.color}"></div>
-                        <div class="w-12 h-12 flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col justify-center items-center ml-2">
-                            <span class="text-[10px] text-slate-400 font-bold">HORA</span>
-                            <span class="text-lg font-black text-slate-700 leading-none">${clase.hora}ª</span>
+                        <div class="w-14 h-14 flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col justify-center items-center ml-2">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase">${clase.hora}ª HORA</span>
+                            <span class="text-sm font-black text-slate-700">${tramo ? tramo.inicio : clase.hora}</span>
                         </div>
                         <div class="flex-1">
                             <h4 class="font-bold text-slate-800 leading-tight" style="color: ${clase.color}">${clase.nombre}</h4>
                             <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
-                                <span><i class="fa-regular fa-clock mr-1 opacity-75"></i>${rangoHora}</span>
+                                <span><i class="fa-regular fa-clock mr-1 opacity-75"></i>${tramo ? tramo.inicio + ' - ' + tramo.fin : ''}</span>
                                 ${clase.profesor ? `<span>|</span> <span><i class="fa-solid fa-user-tie mr-1 opacity-75"></i>${clase.profesor}</span>` : ''}
                             </p>
                         </div>
@@ -732,7 +678,6 @@ function renderizarDashboard() {
         }
     }
 
-    // 3. RENDERIZAR TAREAS (Máximo 5 para no saturar)
     const listaTareasDash = document.getElementById('lista-tareas-dashboard');
     const dashPendientes = document.getElementById('dash-pendientes');
 
@@ -743,7 +688,6 @@ function renderizarDashboard() {
         if (pendientes.length === 0) {
             listaTareasDash.innerHTML = `<li class="py-8 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2">Todo al día. No hay tareas pendientes.</li>`;
         } else {
-            // ORDENAR POR FECHA (Las más urgentes primero)
             pendientes.sort((a, b) => {
                 if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
                 if (a.fecha && !b.fecha) return -1;
@@ -763,7 +707,7 @@ function renderizarDashboard() {
                     const esVencida = tarea.fecha <= hoyStr;
                     const colorBadge = esVencida ? 'text-red-600 bg-red-100' : 'text-slate-600 bg-slate-100';
                     const partes = tarea.fecha.split('-');
-                    const fechaCorta = `${partes[2]}/${partes[1]}`; // Solo muestra Día/Mes en el Dashboard
+                    const fechaCorta = `${partes[2]}/${partes[1]}`;
                     badgeFechaDash = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${colorBadge}">${fechaCorta}</span>`;
                 }
 
@@ -783,7 +727,6 @@ function renderizarDashboard() {
         }
     }
 
-    // 4. RENDERIZAR MEDIA GLOBAL
     const widgetMedia = document.getElementById('dash-media-global');
     if (widgetMedia) {
         let sumaMedias = 0;
