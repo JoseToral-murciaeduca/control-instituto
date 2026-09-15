@@ -1,26 +1,22 @@
 package com.instituto.academic_os_backend;
 
 import jakarta.persistence.*;
-import java.time.LocalDate; // Importante para la fecha
+import java.time.LocalDate;
 
 @Entity
-@Table(name = "tareas")
-public class Tarea {
+@Table(name = "entregas")
+public class Entrega {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String titulo;
-    private String texto;
-    private String estado;
-
-    // AQUÍ ESTÁ LA CLAVE: El nombre debe coincidir con lo que envía JavaScript
+    private String tipo;     // Ej: "Proyecto", "Examen", "Práctica"
+    private String estado;   // Ej: "En progreso", "Pendiente", "Completado"
     private LocalDate fechaLimite;
 
-    // Constructor vacío obligatorio para JPA
-    public Tarea() {
-    }
+    public Entrega() {}
 
     // --- GETTERS Y SETTERS ---
     public Long getId() { return id; }
@@ -29,8 +25,8 @@ public class Tarea {
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    public String getTexto() { return texto; }
-    public void setTexto(String texto) { this.texto = texto; }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }

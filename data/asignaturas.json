@@ -4,8 +4,10 @@
     "nombre": "Acceso a Datos",
     "profesor": "Juan Pedro Pérez Resina",
     "meet": "https://meet.google.com/oau-ivhd-fcb",
+    "progreso": 0,
+    "color": "#4f46e5",
     "horario": [
-      {"dia": "Martes", "hora": "16:15 - 17:10"}
+      {"dia": "Jueves", "hora": "15:20 - 17:10"}
     ]
   },
   {
@@ -13,15 +15,19 @@
     "nombre": "Programación Multimedia y DM",
     "profesor": "Juan Pedro Pérez Resina",
     "meet": "https://meet.google.com/oau-ivhd-fcb",
+    "progreso": 0,
+    "color": "#4f46e5",
     "horario": [
-      {"dia": "Martes", "hora": "17:10 - 18:05"}
+      {"dia": "Jueves", "hora": "17:10 - 18:05"}
     ]
   },
   {
     "id": "di",
     "nombre": "Desarrollo de Interfaces",
-    "profesor": "Basilio Rafael Coloma",
-    "meet": "https://meet.google.com/nbr-pznm-anb",
+    "profesor": "Basilio Rafael Coloma Martinez",
+    "meet": "https://meet.google.com/fcx-eeyv-qmy",
+    "progreso": 0,
+    "color": "#4f46e5",
     "horario": [
       {"dia": "Martes", "hora": "18:05 - 19:00"}
     ]
@@ -29,10 +35,12 @@
   {
     "id": "sge",
     "nombre": "Sistemas de Gestión Empresarial",
-    "profesor": "Alexandre Ibañez López",
-    "meet": "https://meet.google.com/psk-ikfk-bdo",
+    "profesor": "Francisco José Carmona Belluga",
+    "meet": "https://meet.google.com/sqd-ngyb-nrs",
+    "progreso": 0,
+    "color": "#4f46e5",
     "horario": [
-      {"dia": "Miércoles", "hora": "18:05 - 19:00"}
+      {"dia": "Miércoles", "hora": "15:20 - 17:10"}
     ]
   },
   {
@@ -40,8 +48,10 @@
     "nombre": "Programación Servicios y Procesos",
     "profesor": "Francisco Javier Huertas García",
     "meet": "https://meet.google.com/fvx-thyj-myr",
+    "progreso": 0,
+    "color": "#4f46e5",
     "horario": [
-      {"dia": "Miércoles", "hora": "19:15 - 20:10"}
+      {"dia": "Miércoles", "hora": "17:10 - 19:00"}
     ]
   }
 ]
