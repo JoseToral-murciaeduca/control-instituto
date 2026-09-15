@@ -226,7 +226,7 @@ function renderizarHorarioAuto() {
 }
 
 // ==========================================
-// 3. TAREAS (Actualizadas con Desplegable)
+// 3. TAREAS (Actualizadas con Fecha Límite)
 // ==========================================
 const formTarea = document.getElementById('form-tarea');
 
@@ -236,7 +236,8 @@ if(formTarea) {
         appData.tareas.push({
             id: Date.now(),
             titulo: document.getElementById('input-tarea').value,
-            asignatura: document.getElementById('input-asignatura').value, // Ahora coge el valor del select
+            asignatura: document.getElementById('input-asignatura').value,
+            fecha: document.getElementById('input-fecha-tarea').value, // NUEVO CAMPO
             completada: false
         });
         formTarea.reset();
@@ -250,7 +251,6 @@ function renderizarTareas() {
     const dashPendientes = document.getElementById('dash-pendientes');
     if (!listaTareas || !selectAsig) return;
 
-    // 1. Llenar el desplegable del formulario con las asignaturas maestras
     selectAsig.innerHTML = '<option value="" disabled selected>Elige asignatura...</option>';
     if(appData.asignaturas.length === 0) {
         selectAsig.innerHTML += `<option value="General">General (Crea asignaturas en el menú)</option>`;
@@ -260,7 +260,6 @@ function renderizarTareas() {
         });
     }
 
-    // 2. Pintar las tareas
     listaTareas.innerHTML = '';
     let pendientes = 0;
 
@@ -268,12 +267,37 @@ function renderizarTareas() {
         listaTareas.innerHTML = '<li class="p-8 text-center text-slate-500">No tienes tareas pendientes. ¡Buen trabajo!</li>';
     }
 
-    appData.tareas.forEach(tarea => {
+    // ORDENAR TAREAS DE LA VISTA PRINCIPAL
+    const tareasOrdenadas = [...appData.tareas].sort((a, b) => {
+        // Primero las no completadas, luego las completadas
+        if (a.completada !== b.completada) return a.completada ? 1 : -1;
+        // Luego ordenamos por fecha (las más antiguas/próximas primero)
+        if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
+        if (a.fecha && !b.fecha) return -1;
+        if (!a.fecha && b.fecha) return 1;
+        return 0;
+    });
+
+    // Conseguir la fecha de hoy para comparar en formato YYYY-MM-DD
+    const hoyStr = new Date().toISOString().split('T')[0];
+
+    tareasOrdenadas.forEach(tarea => {
         if (!tarea.completada) pendientes++;
 
-        // Buscar el color de la asignatura para ponerle la etiqueta bonita
         const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
-        const colorEtiqueta = asigInfo ? asigInfo.color : '#94a3b8'; // Gris por defecto
+        const colorEtiqueta = asigInfo ? asigInfo.color : '#94a3b8';
+
+        // LÓGICA DE LA FECHA
+        let badgeFecha = '';
+        if (tarea.fecha) {
+            const esVencida = tarea.fecha <= hoyStr; // Es hoy o ya pasó
+            const colorTexto = esVencida && !tarea.completada ? 'text-red-500 font-bold' : 'text-slate-500';
+            const icono = esVencida && !tarea.completada ? 'fa-circle-exclamation' : 'fa-calendar';
+            const partes = tarea.fecha.split('-');
+            const fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`; // DD/MM/YYYY
+
+            badgeFecha = `<span class="ml-3 text-xs ${colorTexto}"><i class="fa-solid ${icono} mr-1"></i>${fechaFormateada}</span>`;
+        }
 
         const li = document.createElement('li');
         li.className = `p-4 flex items-center justify-between transition-all ${tarea.completada ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50'}`;
@@ -282,10 +306,11 @@ function renderizarTareas() {
                 <input type="checkbox" ${tarea.completada ? 'checked' : ''} onchange="toggleTarea(${tarea.id})" class="h-6 w-6 text-blue-600 rounded cursor-pointer">
                 <div>
                     <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-lg">${tarea.titulo}</p>
-                    <p class="text-sm mt-1">
+                    <p class="text-sm mt-1 flex items-center">
                         <span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide text-white" style="background-color: ${colorEtiqueta}">
                             ${tarea.asignatura}
                         </span>
+                        ${badgeFecha}
                     </p>
                 </div>
             </div>
@@ -306,7 +331,7 @@ window.eliminarTarea = function(id) {
 }
 
 // ==========================================
-// 4. CALIFICACIONES (Enlazadas)
+// 4. CALIFICACIONES (Enlazadas + Calculadora)
 // ==========================================
 function renderizarCalificaciones() {
     const contenedor = document.getElementById('contenedor-asignaturas');
@@ -340,6 +365,19 @@ function renderizarCalificaciones() {
                 </div>`;
         });
 
+        // BLOQUE NUEVO: HTML de la Calculadora Objetivo
+        const htmlCalculadora = `
+            <div class="mt-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                <h4 class="text-xs font-bold uppercase text-blue-700 mb-3"><i class="fa-solid fa-bullseye mr-1"></i> Calculadora Objetivo</h4>
+                <form onsubmit="calcularObjetivo(event, ${asig.id}, ${media})" class="flex gap-2 items-center">
+                    <input type="number" step="0.1" min="0" max="10" id="calc-meta-${asig.id}" placeholder="Nota que deseas" required class="w-full p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none">
+                    <input type="number" step="1" min="1" max="100" id="calc-peso-${asig.id}" placeholder="Peso %" required class="w-24 p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none" title="Cuánto vale este examen del total de la nota">
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition shadow-sm text-xs font-bold">Calcular</button>
+                </form>
+                <div id="calc-resultado-${asig.id}" class="mt-3 text-sm hidden"></div>
+            </div>
+        `;
+
         const div = document.createElement('div');
         div.className = 'bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full relative overflow-hidden';
         div.innerHTML = `
@@ -351,12 +389,18 @@ function renderizarCalificaciones() {
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Ponderada</span>
                 </div>
             </div>
-            <div class="flex-1 mb-6">${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}</div>
+            
+            <div class="flex-1 mb-4">
+                ${htmlNotas || '<p class="text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}
+                ${htmlCalculadora}
+            </div>
+
             <div class="mt-auto pt-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl border-t border-slate-100">
+                <h4 class="text-[10px] font-bold uppercase text-slate-400 mb-2">Añadir nueva nota real</h4>
                 <form onsubmit="agregarNota(event, ${asig.id})" class="flex gap-2">
-                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Examen 1" required class="w-1/2 p-2 text-sm border border-slate-200 rounded">
-                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm border border-slate-200 rounded">
-                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm border border-slate-200 rounded">
+                    <input type="text" id="nota-nombre-${asig.id}" placeholder="Ej. Práctica 1" required class="w-1/2 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
+                    <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
+                    <input type="number" step="0.1" min="0.1" max="100" id="nota-peso-${asig.id}" placeholder="Peso %" required class="w-1/4 p-2 text-sm border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
                     <button type="submit" class="bg-slate-800 text-white px-3 rounded hover:bg-slate-700"><i class="fa-solid fa-plus"></i></button>
                 </form>
             </div>
@@ -378,9 +422,42 @@ window.agregarNota = function(e, idAsig) {
         guardarDatos();
     }
 }
+
 window.eliminarNota = function(idAsig, idNota) {
     const asig = appData.asignaturas.find(a => a.id === idAsig);
     if(asig) { asig.notas = asig.notas.filter(n => n.id !== idNota); guardarDatos(); }
+}
+
+// BLOQUE NUEVO: Lógica Matemática de la Calculadora
+window.calcularObjetivo = function(e, idAsig, mediaActualStr) {
+    e.preventDefault();
+    const meta = parseFloat(document.getElementById(`calc-meta-${idAsig}`).value);
+    const pesoFinal = parseFloat(document.getElementById(`calc-peso-${idAsig}`).value);
+    const divResultado = document.getElementById(`calc-resultado-${idAsig}`);
+
+    const mediaActual = parseFloat(mediaActualStr) || 0;
+
+    // Fórmula: Calculamos cuántos puntos ya tenemos asegurados basándonos en el % restante
+    const pesoRestante = 100 - pesoFinal;
+    const puntosActuales = mediaActual * (pesoRestante / 100);
+
+    // Calculamos qué nota exacta necesitamos en ese % final para llegar a la meta
+    let notaNecesaria = (meta - puntosActuales) / (pesoFinal / 100);
+    notaNecesaria = notaNecesaria.toFixed(2);
+
+    // Mostramos el resultado con diferentes colores según la dificultad
+    divResultado.classList.remove('hidden');
+
+    if (notaNecesaria > 10) {
+        divResultado.innerHTML = `<i class="fa-solid fa-face-dizzy mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. Matemáticamente imposible (máx. 10).`;
+        divResultado.className = "mt-3 text-sm p-3 bg-red-100 text-red-700 rounded border border-red-200";
+    } else if (notaNecesaria <= 0) {
+        divResultado.innerHTML = `<i class="fa-solid fa-party-horn mr-1"></i> Necesitas un <b>${notaNecesaria}</b>. ¡Ya tienes el ${meta} asegurado aunque saques un 0!`;
+        divResultado.className = "mt-3 text-sm p-3 bg-green-100 text-green-700 rounded border border-green-200";
+    } else {
+        divResultado.innerHTML = `<i class="fa-solid fa-pen-nib mr-1"></i> Para tener un ${meta}, necesitas sacar un <b>${notaNecesaria}</b>.`;
+        divResultado.className = "mt-3 text-sm p-3 bg-blue-100 text-blue-800 rounded border border-blue-200";
+    }
 }
 
 // ==========================================
@@ -412,6 +489,25 @@ window.procesarImportacion = function(event) {
         event.target.value = '';
     };
     lector.readAsText(archivo);
+}
+
+// REINICIO TOTAL (Doble confirmación de seguridad)
+window.reiniciarCurso = function() {
+    // Primera confirmación normal
+    const primeraAlerta = confirm("⚠️ ATENCIÓN: Estás a punto de borrar TODAS tus asignaturas, horarios, notas y tareas.\n\nEsta acción NO se puede deshacer a menos que tengas un backup exportado.\n\n¿Estás completamente seguro de que quieres continuar?");
+
+    if (primeraAlerta) {
+        // Segunda confirmación (para evitar clics accidentales dobles)
+        const segundaAlerta = confirm("🚨 ÚLTIMO AVISO 🚨\n\n¿De verdad quieres empezar un curso nuevo y perder todo tu historial de este navegador?");
+
+        if (segundaAlerta) {
+            // Borramos la clave del LocalStorage directamente
+            localStorage.removeItem(STORAGE_KEY);
+
+            // Recargamos la página web. Al cargar, como no hay datos, el propio script inicializará todo a cero.
+            window.location.reload();
+        }
+    }
 }
 
 // ==========================================
@@ -490,22 +586,41 @@ function renderizarDashboard() {
     const dashPendientes = document.getElementById('dash-pendientes');
 
     if (listaTareasDash && dashPendientes) {
-        const pendientes = appData.tareas.filter(t => !t.completada);
+        let pendientes = appData.tareas.filter(t => !t.completada);
         dashPendientes.textContent = pendientes.length;
 
         if (pendientes.length === 0) {
             listaTareasDash.innerHTML = `<li class="py-8 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2">Todo al día. No hay tareas pendientes.</li>`;
         } else {
+            // ORDENAR POR FECHA (Las más urgentes primero)
+            pendientes.sort((a, b) => {
+                if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
+                if (a.fecha && !b.fecha) return -1;
+                if (!a.fecha && b.fecha) return 1;
+                return 0;
+            });
+
+            const hoyStr = new Date().toISOString().split('T')[0];
             let htmlTareas = '';
+
             pendientes.slice(0, 5).forEach(tarea => {
                 const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
                 const colorPunto = asigInfo ? asigInfo.color : '#cbd5e1';
 
+                let badgeFechaDash = '';
+                if(tarea.fecha) {
+                    const esVencida = tarea.fecha <= hoyStr;
+                    const colorBadge = esVencida ? 'text-red-600 bg-red-100' : 'text-slate-600 bg-slate-100';
+                    const partes = tarea.fecha.split('-');
+                    const fechaCorta = `${partes[2]}/${partes[1]}`; // Solo muestra Día/Mes en el Dashboard
+                    badgeFechaDash = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${colorBadge}">${fechaCorta}</span>`;
+                }
+
                 htmlTareas += `
                     <li class="py-3 flex justify-between items-center group">
-                        <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="flex items-center gap-3 overflow-hidden flex-1">
                             <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div>
-                            <span class="text-slate-700 font-medium truncate">${tarea.titulo}</span>
+                            <span class="text-slate-700 font-medium truncate flex-1 flex items-center">${tarea.titulo} ${badgeFechaDash}</span>
                         </div>
                         <button onclick="toggleTarea(${tarea.id})" class="opacity-0 group-hover:opacity-100 flex-shrink-0 ml-4 text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg hover:bg-green-100 transition border border-green-200 font-bold">
                             <i class="fa-solid fa-check mr-1"></i> Hecho
