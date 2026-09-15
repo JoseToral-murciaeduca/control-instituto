@@ -12,12 +12,18 @@
 
     <!-- Menú Lateral -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
-        <div class="p-6 border-b border-slate-800 text-center">
-            <h1 class="text-xl font-bold tracking-wider">
+        <div class="p-6 border-b border-slate-800 text-center relative overflow-hidden">
+            <!-- Capa de color de fondo sutil -->
+            <div class="absolute inset-0 bg-blue-600 opacity-10"></div>
+            <h1 class="text-xl font-bold tracking-wider relative z-10">
                 <i class="fa-solid fa-graduation-cap text-blue-400 mr-2"></i>CONTROL
             </h1>
-            <p class="text-xs text-slate-400 mt-1">Instituto</p>
+            <!-- Este texto cambiará dinámicamente con tu instituto -->
+            <p id="sidebar-instituto" class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest relative z-10">
+                Instituto
+            </p>
         </div>
+
         <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
             <button onclick="cambiarSeccion('dashboard')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
                 <i class="fa-solid fa-chart-line w-6 text-blue-400"></i> Resumen
@@ -42,65 +48,61 @@
     </aside>
 
     <!-- Área Principal -->
-    <main class="flex-1 overflow-y-auto p-8 bg-slate-50">
+    <main class="flex-1 overflow-y-auto p-0 bg-slate-50 relative">
 
-        <!-- DASHBOARD -->
-        <section id="dashboard" class="seccion-app animate-fade-in">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8">Hola, Estudiante 👋</h2>
-
-            <!-- Tarjetas de Resumen (Top 3) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Tareas Pendientes -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
-                    <div class="bg-blue-100 p-4 rounded-lg"><i class="fa-solid fa-list-check text-2xl text-blue-600"></i></div>
-                    <div>
-                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tareas Pendientes</h3>
-                        <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
-                    </div>
-                </div>
-
-                <!-- Media Global -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
-                    <div class="bg-yellow-100 p-4 rounded-lg"><i class="fa-solid fa-star text-2xl text-yellow-600"></i></div>
-                    <div>
-                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media Global</h3>
-                        <p class="text-3xl font-bold text-slate-800" id="dash-media-global">0.00</p>
-                    </div>
-                </div>
-
-                <!-- Clases Hoy -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
-                    <div class="bg-purple-100 p-4 rounded-lg"><i class="fa-solid fa-calendar-day text-2xl text-purple-600"></i></div>
-                    <div>
-                        <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Clases Hoy</h3>
-                        <p class="text-3xl font-bold text-slate-800" id="dash-clases-hoy">0</p>
-                    </div>
+        <!-- DASHBOARD (Rediseñado con Banner Personalizado) -->
+        <section id="dashboard" class="seccion-app animate-fade-in pb-8">
+            <!-- Banner Fotográfico Superior -->
+            <div id="dash-banner" class="h-64 bg-slate-800 relative bg-cover bg-center flex items-end pb-8 px-8" style="background-image: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80');">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+                <div class="relative z-10 w-full">
+                    <p id="dash-ubicacion" class="text-blue-400 text-sm font-bold uppercase tracking-widest mb-1"><i class="fa-solid fa-location-dot mr-1"></i> Ciudad</p>
+                    <h2 id="dash-saludo" class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">Hola, Estudiante 👋</h2>
                 </div>
             </div>
 
-            <!-- Paneles Detallados -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <!-- Panel: Clases de Hoy -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-regular fa-clock mr-2 text-purple-500"></i>Horario de Hoy</h3>
-                        <span id="dash-dia-actual" class="text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Lunes</span>
+            <div class="px-8 -mt-6 relative z-20">
+                <!-- Tarjetas de Resumen (Top 3) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                        <div class="bg-blue-100 p-4 rounded-lg"><i class="fa-solid fa-list-check text-2xl text-blue-600"></i></div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Pendientes</h3>
+                            <p class="text-3xl font-bold text-slate-800" id="dash-pendientes">0</p>
+                        </div>
                     </div>
-                    <div id="lista-clases-hoy" class="space-y-3">
-                        <!-- JS inyectará las clases del día aquí -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                        <div class="bg-yellow-100 p-4 rounded-lg"><i class="fa-solid fa-star text-2xl text-yellow-600"></i></div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Media Global</h3>
+                            <p class="text-3xl font-bold text-slate-800" id="dash-media-global">0.00</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex items-center gap-4 transition">
+                        <div class="bg-purple-100 p-4 rounded-lg"><i class="fa-solid fa-calendar-day text-2xl text-purple-600"></i></div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Clases Hoy</h3>
+                            <p class="text-3xl font-bold text-slate-800" id="dash-clases-hoy">0</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Panel: Tareas Rápidas -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-signature mr-2 text-blue-500"></i>Próximas Tareas</h3>
-                        <button onclick="cambiarSeccion('tareas')" class="text-sm text-blue-600 hover:underline font-medium">Ver todas</button>
+                <!-- Paneles Detallados -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-slate-800"><i class="fa-regular fa-clock mr-2 text-purple-500"></i>Horario de Hoy</h3>
+                            <span id="dash-dia-actual" class="text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Lunes</span>
+                        </div>
+                        <div id="lista-clases-hoy" class="space-y-3"></div>
                     </div>
-                    <ul id="lista-tareas-dashboard" class="divide-y divide-slate-100">
-                        <!-- JS inyectará las tareas aquí -->
-                    </ul>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-file-signature mr-2 text-blue-500"></i>Próximas Tareas</h3>
+                            <button onclick="cambiarSeccion('tareas')" class="text-sm text-blue-600 hover:underline font-medium">Ver todas</button>
+                        </div>
+                        <ul id="lista-tareas-dashboard" class="divide-y divide-slate-100"></ul>
+                    </div>
                 </div>
             </div>
         </section>
@@ -264,9 +266,45 @@
     </main>
 </div>
 
+<!-- MODAL DE BIENVENIDA (ONBOARDING) -->
+<div id="modal-bienvenida" class="fixed inset-0 bg-slate-900 bg-opacity-90 hidden flex items-center justify-center z-50 backdrop-blur-md transition-opacity">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col md:flex-row">
+
+        <!-- Mitad visual -->
+        <div class="bg-blue-600 md:w-1/3 p-8 text-white flex flex-col justify-center items-center text-center">
+            <i class="fa-solid fa-rocket text-6xl mb-4 drop-shadow-md"></i>
+            <h3 class="text-2xl font-bold mb-2">¡Bienvenido!</h3>
+            <p class="text-blue-100 text-sm">Vamos a personalizar tu panel de control para que te sientas como en casa.</p>
+        </div>
+
+        <!-- Formulario -->
+        <div class="p-8 md:w-2/3">
+            <form id="form-perfil" onsubmit="guardarPerfilPersonalizado(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">¿Cómo te llamas?</label>
+                    <input type="text" id="perfil-nombre" required value="Jose" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Centro de Estudios</label>
+                    <input type="text" id="perfil-instituto" required value="IES Alfonso X El Sabio" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">¿De dónde eres? (Ciudad/Localidad)</label>
+                    <input type="text" id="perfil-ciudad" required value="Fortuna, Murcia" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-slate-900 text-white px-6 py-4 rounded-lg hover:bg-slate-800 transition font-bold shadow-lg flex items-center justify-center">
+                        Empezar el curso <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
-    .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 <script src="app.js"></script>

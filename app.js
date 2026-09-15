@@ -5,7 +5,8 @@ const STORAGE_KEY = 'control_instituto_db';
 
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     tareas: [],
-    asignaturas: [] // Ahora este es el núcleo del programa
+    asignaturas: [],
+    perfil: null // NUEVO: Si es null, pediremos los datos
 };
 
 // Migración de seguridad por si tenías datos antiguos
@@ -511,13 +512,73 @@ window.reiniciarCurso = function() {
 }
 
 // ==========================================
+// NUEVO MÓDULO: PERSONALIZACIÓN Y ONBOARDING
+// ==========================================
+function comprobarPerfil() {
+    const modalBienvenida = document.getElementById('modal-bienvenida');
+
+    // Si no hay perfil guardado, mostramos la ventana obligatoria
+    if (!appData.perfil) {
+        modalBienvenida.classList.remove('hidden');
+    } else {
+        aplicarPersonalizacion();
+    }
+}
+
+window.guardarPerfilPersonalizado = function(e) {
+    e.preventDefault();
+
+    const nombre = document.getElementById('perfil-nombre').value.trim();
+    const instituto = document.getElementById('perfil-instituto').value.trim();
+    const ciudad = document.getElementById('perfil-ciudad').value.trim();
+
+    // Asignamos una imagen bonita del skyline o paisaje urbano (usamos Unsplash aleatorio con la palabra de la ciudad para que sea dinámico)
+    // Nota: Como no tenemos API, usamos la URL de búsqueda dinámica de Unsplash
+    const urlBanner = `https://source.unsplash.com/1600x900/?landscape,${encodeURIComponent(ciudad.split(',')[0])}`;
+
+    appData.perfil = {
+        nombre: nombre,
+        instituto: instituto,
+        ciudad: ciudad,
+        banner: urlBanner
+    };
+
+    guardarDatos();
+    document.getElementById('modal-bienvenida').classList.add('hidden');
+    aplicarPersonalizacion();
+}
+
+function aplicarPersonalizacion() {
+    if (!appData.perfil) return;
+
+    // 1. Personalizar el Menú Lateral
+    const textInstituto = document.getElementById('sidebar-instituto');
+    if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
+
+    // 2. Personalizar el Dashboard
+    const textSaludo = document.getElementById('dash-saludo');
+    const textUbicacion = document.getElementById('dash-ubicacion');
+    const banner = document.getElementById('dash-banner');
+
+    if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
+    if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
+
+    // Aplicamos la imagen de fondo si la hay
+    if(banner && appData.perfil.banner) {
+        banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
+    }
+}
+
+// ==========================================
 // RENDERIZADO MAESTRO
 // ==========================================
 function actualizarUI() {
+    comprobarPerfil();
     renderizarConfigAsignaturas();
     renderizarHorarioAuto();
     renderizarTareas();
     renderizarCalificaciones();
+    renderizarDashboard();
 }
 
 // ARRANQUE DE LA APP
