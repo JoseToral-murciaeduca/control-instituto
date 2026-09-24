@@ -16,10 +16,12 @@ const TRAMOS_HORARIOS = {
 let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     tareas: [],
     asignaturas: [],
-    perfil: null // Si es null, pediremos los datos
+    perfil: null, // Si es null, pediremos los datos
+    tests: [] // NUEVO: Añadimos el array para guardar los tests
 };
 
 // Migración de seguridad por si tenías datos antiguos
+if(!appData.tests) appData.tests = [];
 appData.asignaturas.forEach(asig => {
     if (!asig.notas) asig.notas = [];
     if (!asig.sesiones) asig.sesiones = [];
@@ -647,22 +649,6 @@ window.reiniciarCurso = function() {
 }
 
 // ==========================================
-// RENDERIZADO MAESTRO
-// ==========================================
-function actualizarUI() {
-    comprobarPerfil();
-    renderizarConfigAsignaturas();
-    renderizarHorarioAuto();
-    renderizarTareas();
-    renderizarCalificaciones();
-    renderizarDashboard();
-}
-
-// ARRANQUE DE LA APP
-actualizarUI();
-cambiarSeccion('dashboard');
-
-// ==========================================
 // 6. DASHBOARD INTELIGENTE
 // ==========================================
 function renderizarDashboard() {
@@ -792,3 +778,530 @@ function renderizarDashboard() {
         }
     }
 }
+
+
+// ==========================================
+// 7. MOTOR DE EXÁMENES (EL NUEVO MÓDULO)
+// ==========================================
+
+// --- A. GESTOR Y EDITOR DE TESTS ---
+
+let testEnEdicion = null;
+
+// Pintar la lista de tests en el Manager
+function renderizarTestsDashboard() {
+    const contenedor = document.getElementById('contenedor-lista-tests');
+    const selectAsig = document.getElementById('edit-test-asig');
+    if (!contenedor || !selectAsig) return;
+
+    // Llenar selectores del editor
+    selectAsig.innerHTML = '';
+    appData.asignaturas.forEach(a => selectAsig.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+
+    contenedor.innerHTML = '';
+    if (appData.tests.length === 0) {
+        contenedor.innerHTML = '<div class="col-span-full text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">No hay tests creados. ¡Crea el primero!</div>';
+        return;
+    }
+
+    appData.tests.forEach(test => {
+        const asig = appData.asignaturas.find(a => a.nombre === test.asignatura);
+        const color = asig ? asig.color : '#ec4899';
+
+        contenedor.innerHTML += `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-md transition group">
+                <div class="h-2 w-full" style="background-color: ${color}"></div>
+                <div class="p-6 flex-1">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">${test.asignatura} • ${test.tema}</span>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${test.titulo}</h3>
+                    <p class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-list-ol mr-1"></i> ${test.preguntas.length} preguntas</p>
+                </div>
+                <div class="bg-slate-50 p-4 border-t border-slate-100 flex gap-2">
+                    <button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 rounded-lg hover:bg-slate-800 transition shadow-sm transform active:scale-95 text-sm">
+                        <i class="fa-solid fa-play mr-1"></i> Iniciar
+                    </button>
+                    <button onclick="abrirEditorTest(${test.id})" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-300 transition text-sm" title="Editar Test">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="borrarTest(${test.id})" class="bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 transition text-sm" title="Borrar Test">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Abrir Modal de Edición
+window.abrirEditorTest = function(id = null) {
+    document.getElementById('form-pregunta-box').classList.add('hidden');
+    if (id) {
+        testEnEdicion = JSON.parse(JSON.stringify(appData.tests.find(t => t.id === id))); // Copia profunda
+    } else {
+        // Test nuevo por defecto
+        testEnEdicion = { id: Date.now(), asignatura: appData.asignaturas[0]?.nombre || '', tema: '', titulo: '', preguntas: [] };
+    }
+
+    document.getElementById('edit-test-asig').value = testEnEdicion.asignatura;
+    document.getElementById('edit-test-tema').value = testEnEdicion.tema;
+    document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
+
+    renderizarPreguntasEditor();
+    document.getElementById('modal-editor-test').classList.remove('hidden');
+}
+
+window.cerrarEditorTest = function() {
+    document.getElementById('modal-editor-test').classList.add('hidden');
+    testEnEdicion = null;
+}
+
+window.borrarTest = function(id) {
+    if(confirm("⚠️ ¿Seguro que quieres borrar este test por completo?")) {
+        appData.tests = appData.tests.filter(t => t.id !== id);
+        guardarDatos();
+    }
+}
+
+// Renderizar la lista de preguntas dentro del editor
+function renderizarPreguntasEditor() {
+    const lista = document.getElementById('lista-preguntas-editor');
+    lista.innerHTML = '';
+
+    if(testEnEdicion.preguntas.length === 0) {
+        lista.innerHTML = '<p class="text-sm text-slate-400 italic text-center py-4">Aún no hay preguntas. Pulsa Añadir Pregunta.</p>';
+        return;
+    }
+
+    testEnEdicion.preguntas.forEach((p, idx) => {
+        let tipoIcon = p.tipo === 'vf' ? 'fa-scale-balanced' : p.tipo === 'fill' ? 'fa-keyboard' : 'fa-list-check';
+        lista.innerHTML += `
+            <div class="bg-white p-3 border border-slate-200 rounded-lg flex justify-between items-center gap-4 hover:border-pink-300 transition cursor-pointer" onclick="abrirFormularioPregunta(${idx})">
+                <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0 text-slate-400">
+                    <i class="fa-solid ${tipoIcon} text-xs"></i>
+                </div>
+                <div class="flex-1 truncate">
+                    <p class="text-sm font-bold text-slate-700 truncate">${p.enunciado}</p>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wide">Pregunta ${idx + 1}</p>
+                </div>
+                <button onclick="event.stopPropagation(); borrarPreguntaDeTest(${idx})" class="text-red-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+        `;
+    });
+}
+
+// Formulario de Preguntas
+window.abrirFormularioPregunta = function(idx = -1) {
+    document.getElementById('form-pregunta-box').classList.remove('hidden');
+    document.getElementById('edit-preg-index').value = idx;
+
+    if (idx >= 0) {
+        const p = testEnEdicion.preguntas[idx];
+        document.getElementById('edit-preg-tipo').value = p.tipo;
+        document.getElementById('edit-preg-enunciado').value = p.enunciado;
+        document.getElementById('edit-preg-explicacion').value = p.explicacion;
+        cambiarTipoPreguntaEditor(p);
+    } else {
+        document.getElementById('edit-preg-tipo').value = 'single';
+        document.getElementById('edit-preg-enunciado').value = '';
+        document.getElementById('edit-preg-explicacion').value = '';
+        cambiarTipoPreguntaEditor();
+    }
+}
+
+window.borrarPreguntaDeTest = function(idx) {
+    testEnEdicion.preguntas.splice(idx, 1);
+    document.getElementById('form-pregunta-box').classList.add('hidden');
+    renderizarPreguntasEditor();
+}
+
+window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
+    const tipo = document.getElementById('edit-preg-tipo').value;
+    const box = document.getElementById('edit-preg-opciones-box');
+    box.innerHTML = '';
+
+    if (tipo === 'vf') {
+        let esCorrectaVerdadero = pregGuardada ? pregGuardada.respuestas[0] === 0 : true;
+        box.innerHTML = `
+            <p class="text-xs font-bold text-slate-500 mb-2">Marca la opción correcta:</p>
+            <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2">
+                    <input type="radio" name="vf-opt" value="0" ${esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> 
+                    <span class="font-bold text-slate-700">Verdadero</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2">
+                    <input type="radio" name="vf-opt" value="1" ${!esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> 
+                    <span class="font-bold text-slate-700">Falso</span>
+                </label>
+            </div>
+        `;
+    }
+    else if (tipo === 'fill') {
+        let val = pregGuardada ? pregGuardada.respuestas[0] : '';
+        box.innerHTML = `
+            <p class="text-xs font-bold text-slate-500 mb-2">Escribe la palabra o código correcto:</p>
+            <input type="text" id="fill-correcta" value="${val}" placeholder="Ej. out" class="w-full p-2 border border-slate-300 rounded font-mono text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+            <p class="text-[10px] text-slate-400 mt-1 italic">* En el enunciado pon "___" donde quieres que el alumno escriba.</p>
+        `;
+    }
+    else {
+        // Multi o Single (4 opciones por defecto para simplificar)
+        let typeInput = tipo === 'single' ? 'radio' : 'checkbox';
+        box.innerHTML = `<p class="text-xs font-bold text-slate-500 mb-2">Escribe las opciones y marca la/s correcta/s:</p>`;
+
+        for (let i = 0; i < 4; i++) {
+            let textoOpt = pregGuardada && pregGuardada.opciones[i] ? pregGuardada.opciones[i] : '';
+            let isChecked = pregGuardada && pregGuardada.respuestas.includes(i) ? 'checked' : (i===0 && tipo==='single' ? 'checked' : '');
+
+            box.innerHTML += `
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="${typeInput}" name="multi-opt" value="${i}" ${isChecked} class="w-4 h-4 text-pink-500 focus:ring-pink-500 cursor-pointer">
+                    <input type="text" id="opt-text-${i}" value="${textoOpt}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 text-sm border border-slate-200 rounded focus:border-pink-400 focus:outline-none">
+                </div>
+            `;
+        }
+    }
+}
+
+window.guardarPreguntaEnTest = function() {
+    const idx = parseInt(document.getElementById('edit-preg-index').value);
+    const tipo = document.getElementById('edit-preg-tipo').value;
+    const enunciado = document.getElementById('edit-preg-enunciado').value.trim();
+    const explicacion = document.getElementById('edit-preg-explicacion').value.trim();
+
+    if(!enunciado) return alert("Falta el enunciado");
+    if(!explicacion) return alert("Falta la explicación para el feedback");
+
+    let opciones = [];
+    let respuestas = [];
+
+    if (tipo === 'vf') {
+        opciones = ["Verdadero", "Falso"];
+        respuestas = [parseInt(document.querySelector('input[name="vf-opt"]:checked').value)];
+    }
+    else if (tipo === 'fill') {
+        let val = document.getElementById('fill-correcta').value.trim();
+        if(!val) return alert("Falta la respuesta correcta");
+        respuestas = [val];
+    }
+    else {
+        // Multi / Single
+        for (let i = 0; i < 4; i++) {
+            let txt = document.getElementById(`opt-text-${i}`).value.trim();
+            if(txt) opciones.push(txt); // Solo guardamos las opciones rellenas
+        }
+        if(opciones.length < 2) return alert("Debes rellenar al menos 2 opciones.");
+
+        const checks = document.querySelectorAll('input[name="multi-opt"]:checked');
+        checks.forEach(c => {
+            const indexValue = parseInt(c.value);
+            // Asegurarnos de que el index corresponde a una opción que tiene texto
+            if(indexValue < opciones.length) respuestas.push(indexValue);
+        });
+        if(respuestas.length === 0) return alert("Debes marcar al menos una respuesta correcta.");
+    }
+
+    const nuevaPregunta = { tipo, enunciado, opciones, respuestas, explicacion };
+
+    if (idx === -1) testEnEdicion.preguntas.push(nuevaPregunta);
+    else testEnEdicion.preguntas[idx] = nuevaPregunta;
+
+    document.getElementById('form-pregunta-box').classList.add('hidden');
+    renderizarPreguntasEditor();
+}
+
+window.guardarTestCompleto = function() {
+    testEnEdicion.asignatura = document.getElementById('edit-test-asig').value;
+    testEnEdicion.tema = document.getElementById('edit-test-tema').value.trim() || 'General';
+    testEnEdicion.titulo = document.getElementById('edit-test-titulo').value.trim() || 'Test sin título';
+
+    if(testEnEdicion.preguntas.length === 0) return alert("El test debe tener al menos una pregunta.");
+
+    const index = appData.tests.findIndex(t => t.id === testEnEdicion.id);
+    if (index >= 0) appData.tests[index] = testEnEdicion;
+    else appData.tests.push(testEnEdicion);
+
+    guardarDatos();
+    cerrarEditorTest();
+}
+
+
+// --- B. EJECUCIÓN DEL TEST (RUNNER) ---
+
+let runnerEstado = null;
+
+// Algoritmo de Fisher-Yates para barajar el array
+function mezclarArray(array) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+window.iniciarTest = function(idTest) {
+    const testInfo = appData.tests.find(t => t.id === idTest);
+    if(!testInfo || testInfo.preguntas.length === 0) return;
+
+    // Inicializamos el estado de la partida
+    runnerEstado = {
+        test: testInfo,
+        preguntas: mezclarArray(testInfo.preguntas), // Aleatoriedad
+        actual: 0,
+        aciertos: 0,
+        fallos: 0,
+        blancos: 0
+    };
+
+    // Actualizar UI Header
+    document.getElementById('runner-titulo').textContent = testInfo.titulo;
+    document.getElementById('runner-tema').textContent = `${testInfo.asignatura} • ${testInfo.tema}`;
+
+    cambiarSeccion('test-runner');
+    pintarPreguntaActual();
+}
+
+window.cerrarTestEnEjecucion = function() {
+    if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) {
+        cambiarSeccion('tests-manager');
+        runnerEstado = null;
+    }
+}
+
+function pintarPreguntaActual() {
+    const p = runnerEstado.preguntas[runnerEstado.actual];
+    const total = runnerEstado.preguntas.length;
+
+    // Progreso
+    document.getElementById('runner-progreso-texto').textContent = `${runnerEstado.actual + 1}/${total}`;
+    document.getElementById('runner-progreso-barra').style.width = `${((runnerEstado.actual) / total) * 100}%`;
+
+    // Limpiar UI anterior
+    document.getElementById('runner-feedback').classList.add('hidden');
+    document.getElementById('btn-comprobar').classList.remove('hidden');
+    document.getElementById('btn-saltar').classList.remove('hidden');
+    document.getElementById('btn-siguiente').classList.add('hidden');
+
+    const uiOpciones = document.getElementById('runner-opciones');
+    uiOpciones.innerHTML = '';
+
+    // Enunciado (Si es Fill in the blank, reemplazamos '___' por un span estilizado)
+    let enunHtml = p.enunciado;
+    if (p.tipo === 'fill') {
+        enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
+        document.getElementById('runner-enunciado').innerHTML = enunHtml;
+        // Poner foco si existe
+        setTimeout(()=> { const i = document.getElementById('resp-fill'); if(i) i.focus(); }, 100);
+    } else {
+        document.getElementById('runner-enunciado').textContent = enunHtml;
+    }
+
+    // Opciones
+    if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
+        let inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
+        p.opciones.forEach((optTexto, idx) => {
+            uiOpciones.innerHTML += `
+                <label class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-pink-300 transition group">
+                    <input type="${inputType}" name="runner-opt" value="${idx}" class="w-5 h-5 text-pink-500 focus:ring-pink-500 border-slate-300">
+                    <span class="text-slate-700 font-medium text-lg group-hover:text-pink-700 transition">${optTexto}</span>
+                </label>
+            `;
+        });
+    }
+}
+
+window.comprobarRespuestaTest = function(saltada = false) {
+    const p = runnerEstado.preguntas[runnerEstado.actual];
+    let esCorrecta = false;
+    let haRespondido = true;
+
+    // Evaluar la respuesta del usuario
+    if (!saltada) {
+        if (p.tipo === 'fill') {
+            const userText = document.getElementById('resp-fill').value.trim().toLowerCase();
+            const correctText = p.respuestas[0].trim().toLowerCase();
+            if (userText === '') haRespondido = false;
+            else esCorrecta = (userText === correctText);
+
+            // Bloquear input
+            document.getElementById('resp-fill').disabled = true;
+
+        } else if (p.tipo === 'multi') {
+            const checks = Array.from(document.querySelectorAll('input[name="runner-opt"]:checked')).map(c => parseInt(c.value));
+            if (checks.length === 0) haRespondido = false;
+            else {
+                // Comprobar si los arrays son idénticos
+                const respuestasCorrectasSort = [...p.respuestas].sort();
+                const checksSort = checks.sort();
+                esCorrecta = (respuestasCorrectasSort.length === checksSort.length && respuestasCorrectasSort.every((val, index) => val === checksSort[index]));
+            }
+        } else {
+            // VF o Single
+            const check = document.querySelector('input[name="runner-opt"]:checked');
+            if (!check) haRespondido = false;
+            else esCorrecta = (parseInt(check.value) === p.respuestas[0]);
+        }
+    }
+
+    if (!saltada && !haRespondido) {
+        return alert("Selecciona o escribe una respuesta, o pulsa Saltar.");
+    }
+
+    // Bloquear inputs
+    document.querySelectorAll('input[name="runner-opt"]').forEach(i => i.disabled = true);
+
+    // Matemáticas y Dopamina (Feedback)
+    const divFeed = document.getElementById('runner-feedback');
+    const iconFeed = document.getElementById('runner-feedback-icon');
+    const titFeed = document.getElementById('runner-feedback-title');
+
+    divFeed.classList.remove('hidden');
+    document.getElementById('runner-feedback-exp').innerHTML = `<i class="fa-solid fa-graduation-cap text-slate-400 mr-2"></i><b>Explicación:</b> ${p.explicacion}`;
+
+    if (saltada) {
+        runnerEstado.blancos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-forward text-slate-400"></i>';
+        titFeed.textContent = "Saltada (+0)";
+        titFeed.className = "font-black text-xl mb-1 text-slate-500";
+    } else if (esCorrecta) {
+        runnerEstado.aciertos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>';
+        titFeed.textContent = "¡Correcto! (+1)";
+        titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop";
+        lanzarConfeti(); // DOPAMINA!
+    } else {
+        runnerEstado.fallos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+        titFeed.textContent = "Incorrecto (-0.5)";
+        titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop";
+
+        // Efecto vibración visual
+        const tarjeta = document.getElementById('runner-tarjeta');
+        tarjeta.classList.add('translate-x-2', 'border-red-500', 'border-2');
+        setTimeout(() => tarjeta.classList.remove('translate-x-2', 'border-red-500', 'border-2'), 300);
+    }
+
+    // Cambiar botones
+    document.getElementById('btn-comprobar').classList.add('hidden');
+    document.getElementById('btn-saltar').classList.add('hidden');
+
+    const btnSiguiente = document.getElementById('btn-siguiente');
+    btnSiguiente.classList.remove('hidden');
+
+    // Si es la última pregunta, cambiar texto
+    if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
+        btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
+        btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse";
+    }
+}
+
+window.siguientePreguntaTest = function() {
+    runnerEstado.actual++;
+    if (runnerEstado.actual < runnerEstado.preguntas.length) {
+        pintarPreguntaActual();
+    } else {
+        finalizarTest();
+    }
+}
+
+function finalizarTest() {
+    const total = runnerEstado.preguntas.length;
+
+    // Fórmula: 2 mal quitan 1 bien -> (Fallos * 0.5)
+    let puntuacionCruda = runnerEstado.aciertos - (runnerEstado.fallos * 0.5);
+
+    // Media sobre 10 (clamp a 0)
+    let nota10 = (puntuacionCruda / total) * 10;
+    if (nota10 < 0) nota10 = 0;
+
+    // Niveles
+    let nivelText = "";
+    let esAprobado = nota10 >= 5.0;
+
+    if (nota10 < 5) nivelText = "Insuficiente";
+    else if (nota10 < 7) nivelText = "Suficiente";
+    else if (nota10 < 9) nivelText = "Notable";
+    else nivelText = "Sobresaliente";
+
+    // Modificar DOM
+    document.getElementById('res-aciertos').textContent = runnerEstado.aciertos;
+    document.getElementById('res-fallos').textContent = runnerEstado.fallos;
+    document.getElementById('res-blancos').textContent = runnerEstado.blancos;
+
+    document.getElementById('resultados-titulo').textContent = nota10.toFixed(2);
+    document.getElementById('resultados-subtitulo').textContent = nivelText;
+
+    const header = document.getElementById('resultados-header');
+    const icon = document.getElementById('resultados-icon');
+
+    if (esAprobado) {
+        header.className = "p-10 text-white bg-gradient-to-br from-green-400 to-emerald-600";
+        icon.innerHTML = '<i class="fa-solid fa-trophy animate-bounce"></i>';
+        lanzarConfeti(100);
+    } else {
+        header.className = "p-10 text-white bg-gradient-to-br from-red-500 to-rose-700";
+        icon.innerHTML = '<i class="fa-solid fa-skull-crossbones"></i>';
+    }
+
+    // Mostrar modal
+    const modal = document.getElementById('modal-resultados');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        document.getElementById('resultados-card').classList.remove('scale-90');
+        document.getElementById('resultados-card').classList.add('scale-100');
+    }, 50);
+}
+
+window.cerrarResultados = function() {
+    document.getElementById('modal-resultados').classList.add('hidden');
+    document.getElementById('resultados-card').classList.remove('scale-100');
+    document.getElementById('resultados-card').classList.add('scale-90');
+    cambiarSeccion('tests-manager');
+    runnerEstado = null;
+}
+
+// Micro-librería de confeti
+function lanzarConfeti(cantidad = 30) {
+    const container = document.getElementById('runner-fx');
+    if(!container) return;
+    container.innerHTML = '';
+    container.style.opacity = '1';
+
+    const colors = ['#fce7f3', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#db2777'];
+
+    for (let i = 0; i < cantidad; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'absolute w-3 h-3 rounded-sm opacity-80';
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.left = Math.random() * 100 + '%';
+        conf.style.top = '-10%';
+
+        const dur = Math.random() * 2 + 1;
+        const delay = Math.random() * 0.5;
+        conf.style.transition = `all ${dur}s cubic-bezier(.37,0,.63,1) ${delay}s`;
+
+        container.appendChild(conf);
+        conf.getBoundingClientRect(); // Trigger reflow
+
+        conf.style.top = '110%';
+        conf.style.transform = `rotate(${Math.random() * 720}deg) translateX(${Math.random() * 100 - 50}px)`;
+    }
+
+    setTimeout(() => { container.style.opacity = '0'; }, 2000);
+}
+
+// ==========================================
+// ARRANQUE DE LA APP
+// ==========================================
+function actualizarUI() {
+    comprobarPerfil();
+    renderizarConfigAsignaturas();
+    renderizarHorarioAuto();
+    renderizarTareas();
+    renderizarCalificaciones();
+    renderizarDashboard();
+    renderizarTestsDashboard(); // NUEVO: Pintar la sección de tests
+}
+
+actualizarUI();
+cambiarSeccion('dashboard');
