@@ -8,7 +8,7 @@ let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     asignaturas: [],
     perfil: null,
     tests: [],
-    configHorario: null // NUEVO: Aquí guardamos tus horas y recreos dinámicos
+    configHorario: null
 };
 
 // Migración de seguridad por si tenías datos antiguos
@@ -34,6 +34,7 @@ appData.asignaturas.forEach(asig => {
     if (!asig.color) asig.color = '#3b82f6';
     if (!asig.profesor) asig.profesor = '';
     if (!asig.enlace) asig.enlace = '';
+    if (asig.enlace_clase === undefined) asig.enlace_clase = ''; // AÑADIDO: Migración enlace clase
 });
 
 function guardarDatos() {
@@ -51,7 +52,7 @@ function getHorasSelectHTML() {
 }
 
 // ==========================================
-// NUEVO: CONFIGURACIÓN DINÁMICA DEL HORARIO
+// CONFIGURACIÓN DINÁMICA DEL HORARIO
 // ==========================================
 let tempConfigHorario = null;
 
@@ -124,14 +125,15 @@ window.guardarConfigHorario = function() {
     document.getElementById('modal-config-horario').classList.add('hidden');
 }
 
-
 // ==========================================
 // NAVEGACIÓN Y RESPONSIVE
 // ==========================================
 function cambiarSeccion(idSeccion) {
     document.querySelectorAll('.seccion-app').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(idSeccion).classList.remove('hidden');
+
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
     if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
         toggleSidebar();
     }
@@ -161,9 +163,17 @@ window.guardarPerfilPersonalizado = function(e) {
     const nombre = document.getElementById('perfil-nombre').value.trim();
     const instituto = document.getElementById('perfil-instituto').value.trim();
     const ciudad = document.getElementById('perfil-ciudad').value.trim();
+
     const promptTexto = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
     const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptTexto)}?width=1600&height=900&nologo=true`;
-    appData.perfil = { nombre, instituto, ciudad, banner: urlBanner };
+
+    appData.perfil = {
+        nombre: nombre,
+        instituto: instituto,
+        ciudad: ciudad,
+        banner: urlBanner
+    };
+
     guardarDatos();
     document.getElementById('modal-bienvenida').classList.add('hidden');
     aplicarPersonalizacion();
@@ -171,20 +181,39 @@ window.guardarPerfilPersonalizado = function(e) {
 
 window.detectarUbicacion = function() {
     const inputCiudad = document.getElementById('perfil-ciudad');
-    if (!navigator.geolocation) { alert("Tu navegador no soporta la geolocalización."); return; }
-    const textoOriginal = inputCiudad.value; inputCiudad.value = "Detectando ubicación..."; inputCiudad.disabled = true;
+
+    if (!navigator.geolocation) {
+        alert("Tu navegador no soporta la geolocalización.");
+        return;
+    }
+
+    const textoOriginal = inputCiudad.value;
+    inputCiudad.value = "Detectando ubicación...";
+    inputCiudad.disabled = true;
+
     navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
             const data = await response.json();
+
             const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
             const provincia = data.address.state || data.address.province || "";
+
             inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
         } catch (error) {
-            inputCiudad.value = textoOriginal; alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
-        } finally { inputCiudad.disabled = false; }
+            console.error("Error al conectar con el satélite:", error);
+            inputCiudad.value = textoOriginal;
+            alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
+        } finally {
+            inputCiudad.disabled = false;
+        }
     }, (error) => {
-        inputCiudad.value = textoOriginal; inputCiudad.disabled = false;
+        console.warn("Error de GPS:", error);
+        inputCiudad.value = textoOriginal;
+        inputCiudad.disabled = false;
         alert("No has dado permiso o hay un error con la ubicación. Por favor, escríbela a mano.");
     });
 }
@@ -202,16 +231,20 @@ function aplicarPersonalizacion() {
     if (!appData.perfil) return;
     const textInstituto = document.getElementById('sidebar-instituto');
     if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
+
     const textSaludo = document.getElementById('dash-saludo');
     const textUbicacion = document.getElementById('dash-ubicacion');
     const banner = document.getElementById('dash-banner');
+
     if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
     if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
-    if(banner && appData.perfil.banner) { banner.style.backgroundImage = `url('${appData.perfil.banner}')`; }
+    if(banner && appData.perfil.banner) {
+        banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
+    }
 }
 
 // ==========================================
-// 1. GESTIÓN DE ASIGNATURAS
+// 1. GESTIÓN DE ASIGNATURAS (CON EDICIÓN)
 // ==========================================
 const formCrearAsignatura = document.getElementById('form-crear-asignatura');
 let contadorFilasHorario = 0;
@@ -241,6 +274,9 @@ window.agregarFilaHorarioFormulario = function() {
 if (formCrearAsignatura) {
     formCrearAsignatura.addEventListener('submit', (e) => {
         e.preventDefault();
+
+        const editId = document.getElementById('asig-edit-id').value;
+
         const sesiones = [];
         const filas = document.getElementById('contenedor-filas-horario').children;
         for(let fila of filas) {
@@ -250,19 +286,77 @@ if (formCrearAsignatura) {
                 sesiones.push({ dia, hora });
             }
         }
-        const nuevaAsig = {
-            id: Date.now(),
-            nombre: document.getElementById('asig-nombre').value.trim(),
-            profesor: document.getElementById('asig-profesor').value.trim(),
-            enlace: document.getElementById('asig-enlace').value.trim(),
-            color: document.getElementById('asig-color').value,
-            notas: [], sesiones: sesiones
-        };
-        appData.asignaturas.push(nuevaAsig);
-        formCrearAsignatura.reset();
-        document.getElementById('contenedor-filas-horario').innerHTML = '';
+
+        const nombre = document.getElementById('asig-nombre').value.trim();
+        const profesor = document.getElementById('asig-profesor').value.trim();
+        const enlace = document.getElementById('asig-enlace').value.trim();
+        const enlace_clase = document.getElementById('asig-enlace-class').value.trim();
+        const color = document.getElementById('asig-color').value;
+
+        if (editId) {
+            // Editando una existente
+            const asigIndex = appData.asignaturas.findIndex(a => a.id == editId);
+            if (asigIndex >= 0) {
+                appData.asignaturas[asigIndex].nombre = nombre;
+                appData.asignaturas[asigIndex].profesor = profesor;
+                appData.asignaturas[asigIndex].enlace = enlace;
+                appData.asignaturas[asigIndex].enlace_clase = enlace_clase;
+                appData.asignaturas[asigIndex].color = color;
+                appData.asignaturas[asigIndex].sesiones = sesiones;
+            }
+        } else {
+            // Creando una nueva
+            appData.asignaturas.push({
+                id: Date.now(),
+                nombre: nombre,
+                profesor: profesor,
+                enlace: enlace,
+                enlace_clase: enlace_clase,
+                color: color,
+                notas: [],
+                sesiones: sesiones
+            });
+        }
+
+        cancelarEdicionAsignatura();
         guardarDatos();
     });
+}
+
+// NUEVO: Funciones para editar asignaturas
+window.editarAsignaturaMaster = function(idAsig) {
+    const asig = appData.asignaturas.find(a => a.id === idAsig);
+    if (!asig) return;
+
+    document.getElementById('asig-edit-id').value = asig.id;
+    document.getElementById('asig-nombre').value = asig.nombre;
+    document.getElementById('asig-profesor').value = asig.profesor;
+    document.getElementById('asig-enlace').value = asig.enlace;
+    document.getElementById('asig-enlace-class').value = asig.enlace_clase || '';
+    document.getElementById('asig-color').value = asig.color;
+
+    const contenedor = document.getElementById('contenedor-filas-horario');
+    contenedor.innerHTML = ''; // Limpiar filas anteriores
+
+    asig.sesiones.forEach(ses => {
+        window.agregarFilaHorarioFormulario();
+        const filas = document.getElementById('contenedor-filas-horario').children;
+        const ultimaFila = filas[filas.length - 1];
+        ultimaFila.querySelector('.select-dia-nuevo').value = ses.dia;
+        ultimaFila.querySelector('.input-hora-nuevo').value = ses.hora;
+    });
+
+    document.getElementById('btn-cancelar-edicion-asig').classList.remove('hidden');
+    document.getElementById('asignaturas-config').scrollIntoView({ behavior: 'smooth' });
+}
+
+window.cancelarEdicionAsignatura = function() {
+    const form = document.getElementById('form-crear-asignatura');
+    if (form) form.reset();
+    document.getElementById('asig-edit-id').value = '';
+    document.getElementById('contenedor-filas-horario').innerHTML = '';
+    const btnCancel = document.getElementById('btn-cancelar-edicion-asig');
+    if (btnCancel) btnCancel.classList.add('hidden');
 }
 
 function renderizarConfigAsignaturas() {
@@ -285,7 +379,6 @@ function renderizarConfigAsignaturas() {
             htmlSesiones += `
                 <div class="flex justify-between items-center p-2 bg-slate-50 rounded mt-1 border border-slate-100">
                     <span class="capitalize font-medium text-xs md:text-sm"><i class="fa-regular fa-clock text-slate-400 mr-1"></i> ${sesion.dia} <span class="text-slate-400 mx-1">|</span> ${textoHora}</span>
-                    <button onclick="borrarSesion(${asig.id}, ${index})" class="text-red-400 hover:text-red-600 transition p-2"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             `;
         });
@@ -298,54 +391,30 @@ function renderizarConfigAsignaturas() {
                 <div class="pr-4">
                     <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight">${asig.nombre}</h3>
                     ${asig.profesor ? `<p class="text-xs md:text-sm text-slate-500 mt-1"><i class="fa-solid fa-chalkboard-user mr-1"></i>${asig.profesor}</p>` : ''}
-                    ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-xs md:text-sm text-blue-500 hover:underline mt-1 inline-block"><i class="fa-solid fa-video mr-1"></i>Enlace de clase</a>` : ''}
+                    <div>
+                        ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-xs md:text-sm text-blue-500 hover:underline mt-1 inline-block mr-3"><i class="fa-solid fa-video mr-1"></i>Enlace (Meet)</a>` : ''}
+                        ${asig.enlace_clase ? `<a href="${asig.enlace_clase}" target="_blank" class="text-xs md:text-sm text-emerald-500 hover:underline mt-1 inline-block"><i class="fa-solid fa-school mr-1"></i>Enlace de clase</a>` : ''}
+                    </div>
                 </div>
-                <button onclick="eliminarAsignaturaMaster(${asig.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition bg-red-50 shrink-0" title="Borrar asignatura completa">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <div class="flex items-center">
+                    <button onclick="editarAsignaturaMaster(${asig.id})" class="text-blue-400 hover:text-blue-600 p-2 rounded transition bg-blue-50 shrink-0 mr-2" title="Editar asignatura">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="eliminarAsignaturaMaster(${asig.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition bg-red-50 shrink-0" title="Borrar asignatura completa">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="flex-1">
                 <h4 class="text-xs font-bold uppercase text-slate-400 mb-2">Bloques de Horario</h4>
                 ${htmlSesiones || '<p class="text-xs text-slate-400 italic">No tiene horario asignado.</p>'}
             </div>
-
-            <div class="mt-4 pt-4 border-t border-slate-100">
-                <form onsubmit="agregarSesion(event, ${asig.id})" class="flex flex-col md:flex-row gap-2">
-                    <select id="dia-${asig.id}" required class="w-full md:w-1/3 p-2 text-sm border border-slate-200 rounded">
-                        <option value="lunes">Lunes</option><option value="martes">Martes</option>
-                        <option value="miercoles">Miércoles</option><option value="jueves">Jueves</option>
-                        <option value="viernes">Viernes</option>
-                    </select>
-                    <select id="hora-${asig.id}" required class="w-full md:w-1/2 p-2 text-xs border border-slate-200 rounded">
-                        ${getHorasSelectHTML()}
-                    </select>
-                    <button type="submit" class="w-full md:w-auto bg-slate-800 text-white p-2 rounded hover:bg-slate-700 transition" title="Añadir bloque">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                </form>
-            </div>
         `;
         contenedor.appendChild(div);
     });
 }
 
-window.agregarSesion = function(e, idAsig) {
-    e.preventDefault();
-    const dia = document.getElementById(`dia-${idAsig}`).value;
-    const hora = parseInt(document.getElementById(`hora-${idAsig}`).value);
-    const asig = appData.asignaturas.find(a => a.id === idAsig);
-    if(asig && !isNaN(hora)) {
-        if(!asig.sesiones.some(s => s.dia === dia && s.hora === hora)) {
-            asig.sesiones.push({ dia, hora });
-            guardarDatos();
-        }
-    }
-}
-window.borrarSesion = function(idAsig, indexSesion) {
-    const asig = appData.asignaturas.find(a => a.id === idAsig);
-    if(asig) { asig.sesiones.splice(indexSesion, 1); guardarDatos(); }
-}
 window.eliminarAsignaturaMaster = function(idAsig) {
     if(confirm("⚠️ ¿Borrar asignatura? Se eliminará del horario y se perderán sus calificaciones.")) {
         appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
@@ -376,13 +445,16 @@ function renderizarHorarioAuto() {
         dias.forEach(dia => {
             const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === tramo.id));
             if (asigEncontrada) {
-                const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-[10px] bg-white bg-opacity-50 text-slate-700 py-1 rounded hover:bg-white transition" title="Abrir clase"><i class="fa-solid fa-video text-blue-600"></i></a>` : '';
+                const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-[10px] bg-white bg-opacity-50 text-blue-700 py-1 rounded hover:bg-white transition" title="Enlace Meet/Zoom"><i class="fa-solid fa-video"></i></a>` : '';
+                const iconoClase = asigEncontrada.enlace_clase ? `<a href="${asigEncontrada.enlace_clase}" target="_blank" class="block mt-1 text-[10px] bg-white bg-opacity-50 text-emerald-700 py-1 rounded hover:bg-white transition" title="Enlace de Clase"><i class="fa-solid fa-school"></i></a>` : '';
+
                 f += `
                     <td class="border border-slate-200 p-1 md:p-2 h-20 md:h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
                         <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${asigEncontrada.color}"></div>
                         <span class="font-bold text-[10px] md:text-sm block leading-tight" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
                         <span class="text-[9px] md:text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
                         ${iconoMeet}
+                        ${iconoClase}
                     </td>`;
             } else {
                 f += `<td class="border border-slate-200 border-dashed p-2 h-24 text-center align-middle"><span class="text-slate-300 text-[10px]">Libre</span></td>`;
@@ -545,7 +617,7 @@ function renderizarDashboard() {
         appData.asignaturas.forEach(asig => {
             asig.sesiones.forEach(sesion => {
                 if (sesion.dia === diaHoy) {
-                    clasesHoy.push({ hora: sesion.hora, nombre: asig.nombre, color: asig.color, enlace: asig.enlace, profesor: asig.profesor });
+                    clasesHoy.push({ hora: sesion.hora, nombre: asig.nombre, color: asig.color, enlace: asig.enlace, enlace_clase: asig.enlace_clase, profesor: asig.profesor });
                 }
             });
         });
@@ -557,7 +629,9 @@ function renderizarDashboard() {
         } else {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
-                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200 shrink-0">Entrar</a>` : '';
+                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200" title="Enlace Meet/Zoom"><i class="fa-solid fa-video"></i></a>` : '';
+                const btnClase = clase.enlace_clase ? `<a href="${clase.enlace_clase}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-emerald-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-emerald-50 transition shadow-sm border border-slate-200" title="Enlace de Clase"><i class="fa-solid fa-school"></i></a>` : '';
+
                 const tramo = appData.configHorario.tramos.find(tr => tr.id === clase.hora);
                 const oIdx = appData.configHorario.tramos.findIndex(tr => tr.id === clase.hora);
 
@@ -575,7 +649,7 @@ function renderizarDashboard() {
                                 ${clase.profesor ? `<span>|</span> <span><i class="fa-solid fa-user-tie mr-1 opacity-75"></i>${clase.profesor}</span>` : ''}
                             </p>
                         </div>
-                        ${btnMeet}
+                        <div class="flex gap-1 shrink-0">${btnMeet}${btnClase}</div>
                     </div>
                 `;
             });
