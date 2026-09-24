@@ -32,9 +32,10 @@ appData.asignaturas.forEach(asig => {
     if (!asig.notas) asig.notas = [];
     if (!asig.sesiones) asig.sesiones = [];
     if (!asig.color) asig.color = '#3b82f6';
+    if (!asig.colorTexto) asig.colorTexto = asig.color; // AÑADIDO: Migración color texto
     if (!asig.profesor) asig.profesor = '';
     if (!asig.enlace) asig.enlace = '';
-    if (asig.enlace_clase === undefined) asig.enlace_clase = ''; // AÑADIDO: Migración enlace clase
+    if (asig.enlace_clase === undefined) asig.enlace_clase = '';
 });
 
 function guardarDatos() {
@@ -42,7 +43,6 @@ function guardarDatos() {
     actualizarUI();
 }
 
-// Helper: Generador de selects dinámicos para los formularios
 function getHorasSelectHTML() {
     let html = '<option value="" disabled selected>Elige franja horaria...</option>';
     appData.configHorario.tramos.forEach((t, i) => {
@@ -57,7 +57,7 @@ function getHorasSelectHTML() {
 let tempConfigHorario = null;
 
 window.abrirConfigHorario = function() {
-    tempConfigHorario = JSON.parse(JSON.stringify(appData.configHorario)); // Copia temporal
+    tempConfigHorario = JSON.parse(JSON.stringify(appData.configHorario));
     renderizarModalConfigHorario();
     document.getElementById('modal-config-horario').classList.remove('hidden');
 }
@@ -125,6 +125,7 @@ window.guardarConfigHorario = function() {
     document.getElementById('modal-config-horario').classList.add('hidden');
 }
 
+
 // ==========================================
 // NAVEGACIÓN Y RESPONSIVE
 // ==========================================
@@ -167,13 +168,7 @@ window.guardarPerfilPersonalizado = function(e) {
     const promptTexto = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
     const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptTexto)}?width=1600&height=900&nologo=true`;
 
-    appData.perfil = {
-        nombre: nombre,
-        instituto: instituto,
-        ciudad: ciudad,
-        banner: urlBanner
-    };
-
+    appData.perfil = { nombre, instituto, ciudad, banner: urlBanner };
     guardarDatos();
     document.getElementById('modal-bienvenida').classList.add('hidden');
     aplicarPersonalizacion();
@@ -229,6 +224,7 @@ window.abrirEdicionPerfil = function() {
 
 function aplicarPersonalizacion() {
     if (!appData.perfil) return;
+
     const textInstituto = document.getElementById('sidebar-instituto');
     if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
 
@@ -238,6 +234,7 @@ function aplicarPersonalizacion() {
 
     if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
     if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
+
     if(banner && appData.perfil.banner) {
         banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
     }
@@ -292,9 +289,9 @@ if (formCrearAsignatura) {
         const enlace = document.getElementById('asig-enlace').value.trim();
         const enlace_clase = document.getElementById('asig-enlace-class').value.trim();
         const color = document.getElementById('asig-color').value;
+        const colorTexto = document.getElementById('asig-color-texto').value; // AÑADIDO: Color del Texto
 
         if (editId) {
-            // Editando una existente
             const asigIndex = appData.asignaturas.findIndex(a => a.id == editId);
             if (asigIndex >= 0) {
                 appData.asignaturas[asigIndex].nombre = nombre;
@@ -302,10 +299,10 @@ if (formCrearAsignatura) {
                 appData.asignaturas[asigIndex].enlace = enlace;
                 appData.asignaturas[asigIndex].enlace_clase = enlace_clase;
                 appData.asignaturas[asigIndex].color = color;
+                appData.asignaturas[asigIndex].colorTexto = colorTexto;
                 appData.asignaturas[asigIndex].sesiones = sesiones;
             }
         } else {
-            // Creando una nueva
             appData.asignaturas.push({
                 id: Date.now(),
                 nombre: nombre,
@@ -313,6 +310,7 @@ if (formCrearAsignatura) {
                 enlace: enlace,
                 enlace_clase: enlace_clase,
                 color: color,
+                colorTexto: colorTexto,
                 notas: [],
                 sesiones: sesiones
             });
@@ -323,7 +321,6 @@ if (formCrearAsignatura) {
     });
 }
 
-// NUEVO: Funciones para editar asignaturas
 window.editarAsignaturaMaster = function(idAsig) {
     const asig = appData.asignaturas.find(a => a.id === idAsig);
     if (!asig) return;
@@ -334,9 +331,10 @@ window.editarAsignaturaMaster = function(idAsig) {
     document.getElementById('asig-enlace').value = asig.enlace;
     document.getElementById('asig-enlace-class').value = asig.enlace_clase || '';
     document.getElementById('asig-color').value = asig.color;
+    document.getElementById('asig-color-texto').value = asig.colorTexto || asig.color; // AÑADIDO
 
     const contenedor = document.getElementById('contenedor-filas-horario');
-    contenedor.innerHTML = ''; // Limpiar filas anteriores
+    contenedor.innerHTML = '';
 
     asig.sesiones.forEach(ses => {
         window.agregarFilaHorarioFormulario();
@@ -389,7 +387,7 @@ function renderizarConfigAsignaturas() {
             <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
             <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
                 <div class="pr-4">
-                    <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight">${asig.nombre}</h3>
+                    <h3 class="text-lg md:text-xl font-bold leading-tight" style="color: ${asig.colorTexto || asig.color}">${asig.nombre}</h3>
                     ${asig.profesor ? `<p class="text-xs md:text-sm text-slate-500 mt-1"><i class="fa-solid fa-chalkboard-user mr-1"></i>${asig.profesor}</p>` : ''}
                     <div>
                         ${asig.enlace ? `<a href="${asig.enlace}" target="_blank" class="text-xs md:text-sm text-blue-500 hover:underline mt-1 inline-block mr-3"><i class="fa-solid fa-video mr-1"></i>Enlace (Meet)</a>` : ''}
@@ -432,13 +430,11 @@ function renderizarHorarioAuto() {
     let fullHTML = '';
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 
-    // 1. Recreos antes de las clases (index = -1)
     const recreosIniciales = appData.configHorario.recreos.filter(r => r.despuesDeIndex === -1);
     recreosIniciales.forEach(r => {
         fullHTML += `<tr class="bg-slate-200 border-y border-slate-300 text-center shadow-inner"><td colspan="6" class="py-2"><span class="text-slate-600 font-bold text-[10px] md:text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> ${r.descripcion || 'Recreo'} (${r.inicio} - ${r.fin})</span></td></tr>`;
     });
 
-    // 2. Clases y recreos intermedios
     appData.configHorario.tramos.forEach((tramo, index) => {
         let f = `<tr><td class="border border-slate-200 bg-white text-center align-middle p-2 w-16 md:w-20 shadow-sm relative z-10"><span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo.inicio}</span><span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo.fin}</span></td>`;
 
@@ -451,7 +447,7 @@ function renderizarHorarioAuto() {
                 f += `
                     <td class="border border-slate-200 p-1 md:p-2 h-20 md:h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
                         <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${asigEncontrada.color}"></div>
-                        <span class="font-bold text-[10px] md:text-sm block leading-tight" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
+                        <span class="font-bold text-[10px] md:text-sm block leading-tight" style="color: ${asigEncontrada.colorTexto || asigEncontrada.color}">${asigEncontrada.nombre}</span>
                         <span class="text-[9px] md:text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
                         ${iconoMeet}
                         ${iconoClase}
@@ -463,7 +459,6 @@ function renderizarHorarioAuto() {
         f += `</tr>`;
         fullHTML += f;
 
-        // ¿Hay algún recreo programado DESPUÉS de esta hora?
         const recreosDespues = appData.configHorario.recreos.filter(r => r.despuesDeIndex === index);
         recreosDespues.forEach(r => {
             fullHTML += `<tr class="bg-slate-200 border-y border-slate-300 text-center shadow-inner"><td colspan="6" class="py-2"><span class="text-slate-600 font-bold text-[10px] md:text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> ${r.descripcion || 'Recreo'} (${r.inicio} - ${r.fin})</span></td></tr>`;
@@ -504,6 +499,8 @@ function renderizarTareas() {
     tareasOrdenadas.forEach(tarea => {
         if (!tarea.completada) pendientes++;
         const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura); const colorEtiqueta = asigInfo ? asigInfo.color : '#94a3b8';
+        const colorTexto = asigInfo ? asigInfo.colorTexto || '#ffffff' : '#ffffff';
+
         let badgeFecha = '';
         if (tarea.fecha) {
             const esVencida = tarea.fecha <= hoyStr; const colorTexto = esVencida && !tarea.completada ? 'text-red-500 font-bold' : 'text-slate-500';
@@ -518,7 +515,7 @@ function renderizarTareas() {
                 <input type="checkbox" ${tarea.completada ? 'checked' : ''} onchange="toggleTarea(${tarea.id})" class="h-5 w-5 md:h-6 md:w-6 text-blue-600 rounded shrink-0 cursor-pointer">
                 <div class="min-w-0">
                     <p class="font-medium ${tarea.completada ? 'line-through text-slate-400' : 'text-slate-800'} text-sm md:text-lg truncate">${tarea.titulo}</p>
-                    <p class="text-xs mt-1 flex items-center flex-wrap gap-1"><span class="px-2 py-0.5 rounded font-semibold uppercase tracking-wide text-white text-[9px] md:text-[10px]" style="background-color: ${colorEtiqueta}">${tarea.asignatura}</span>${badgeFecha}</p>
+                    <p class="text-xs mt-1 flex items-center flex-wrap gap-1"><span class="px-2 py-0.5 rounded font-semibold uppercase tracking-wide text-[9px] md:text-[10px]" style="background-color: ${colorEtiqueta}; color: ${colorTexto}">${tarea.asignatura}</span>${badgeFecha}</p>
                 </div>
             </div>
             <button onclick="eliminarTarea(${tarea.id})" class="text-slate-400 hover:text-red-500 p-2 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
@@ -571,7 +568,7 @@ function renderizarCalificaciones() {
         div.innerHTML = `
             <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
             <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
-                <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-2">${asig.nombre}</h3>
+                <h3 class="text-lg md:text-xl font-bold leading-tight pr-2" style="color: ${asig.colorTexto || asig.color}">${asig.nombre}</h3>
                 <div class="text-right shrink-0"><span class="block text-2xl md:text-3xl font-black ${colorMedia} leading-none">${media}</span></div>
             </div>
             <div class="flex-1 mb-4">${htmlNotas || '<p class="text-xs md:text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}${htmlCalculadora}</div>
@@ -595,11 +592,21 @@ window.calcularObjetivo = function(e, idAsig, mediaActualStr) {
 }
 
 // ==========================================
-// 5. IMPORTAR / EXPORTAR (Ajustes)
+// 5. IMPORTAR / EXPORTAR / PRUEBAS (Ajustes)
 // ==========================================
 window.exportarDatos = function() { const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `control_instituto_backup_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
 window.procesarImportacion = function(event) { const archivo = event.target.files[0]; if (!archivo) return; const lector = new FileReader(); lector.onload = function(e) { try { const importado = JSON.parse(e.target.result); if (importado && typeof importado === 'object' && confirm('⚠️ Esto sobrescribirá tus datos actuales. ¿Continuar?')) { appData = importado; guardarDatos(); alert('✅ Backup restaurado!'); cambiarSeccion('dashboard'); } } catch (error) { alert('❌ Error. Archivo no válido.'); } event.target.value = ''; }; lector.readAsText(archivo); }
+
 window.reiniciarCurso = function() { if (confirm("⚠️ ATENCIÓN: Estás a punto de borrar TODAS tus asignaturas, horarios, notas y tareas.\n\n¿Continuar?")) { if (confirm("🚨 ÚLTIMO AVISO 🚨\n\n¿De verdad quieres perder todo tu historial?")) { localStorage.removeItem(STORAGE_KEY); window.location.reload(); } } }
+
+// NUEVO: Limpieza ultra rápida del Caché para programar/hacer pruebas
+window.limpiarLocalStorage = function() {
+    if (confirm("🛠️ MODO DESARROLLO: ¿Borrar la base de datos local y recargar?")) {
+        localStorage.clear();
+        window.location.reload();
+    }
+}
+
 
 // ==========================================
 // 6. DASHBOARD INTELIGENTE
@@ -617,7 +624,7 @@ function renderizarDashboard() {
         appData.asignaturas.forEach(asig => {
             asig.sesiones.forEach(sesion => {
                 if (sesion.dia === diaHoy) {
-                    clasesHoy.push({ hora: sesion.hora, nombre: asig.nombre, color: asig.color, enlace: asig.enlace, enlace_clase: asig.enlace_clase, profesor: asig.profesor });
+                    clasesHoy.push({ hora: sesion.hora, nombre: asig.nombre, color: asig.color, colorTexto: asig.colorTexto, enlace: asig.enlace, enlace_clase: asig.enlace_clase, profesor: asig.profesor });
                 }
             });
         });
@@ -629,7 +636,7 @@ function renderizarDashboard() {
         } else {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
-                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200" title="Enlace Meet/Zoom"><i class="fa-solid fa-video"></i></a>` : '';
+                const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200 shrink-0" title="Enlace Meet/Zoom"><i class="fa-solid fa-video"></i></a>` : '';
                 const btnClase = clase.enlace_clase ? `<a href="${clase.enlace_clase}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-emerald-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-emerald-50 transition shadow-sm border border-slate-200" title="Enlace de Clase"><i class="fa-solid fa-school"></i></a>` : '';
 
                 const tramo = appData.configHorario.tramos.find(tr => tr.id === clase.hora);
@@ -643,7 +650,7 @@ function renderizarDashboard() {
                             <span class="text-xs md:text-sm font-black text-slate-700">${tramo ? tramo.inicio : clase.hora}</span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-slate-800 text-sm md:text-base leading-tight truncate" style="color: ${clase.color}">${clase.nombre}</h4>
+                            <h4 class="font-bold text-sm md:text-base leading-tight truncate" style="color: ${clase.colorTexto || clase.color}">${clase.nombre}</h4>
                             <p class="text-[9px] md:text-[11px] text-slate-500 mt-1 truncate">
                                 <span><i class="fa-regular fa-clock mr-1 opacity-75"></i>${tramo ? tramo.inicio + ' - ' + tramo.fin : ''}</span>
                                 ${clase.profesor ? `<span>|</span> <span><i class="fa-solid fa-user-tie mr-1 opacity-75"></i>${clase.profesor}</span>` : ''}
