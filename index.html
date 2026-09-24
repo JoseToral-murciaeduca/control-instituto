@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Instituto | Mi Dashboard</title>
-    <!-- PWA y Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <script>
@@ -63,7 +62,6 @@
             <i class="fa-solid fa-star w-6 text-yellow-400"></i> Calificaciones
         </button>
 
-        <!-- NUEVO: Botón de Tests -->
         <button onclick="cambiarSeccion('tests-manager')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg transition-colors flex items-center">
             <i class="fa-solid fa-gamepad w-6 text-pink-400"></i> Repaso y Tests
         </button>
@@ -205,11 +203,16 @@
         </div>
     </section>
 
-    <!-- HORARIO -->
+    <!-- HORARIO (AQUÍ ESTÁ LA MAGIA DEL BOTÓN NUEVO) -->
     <section id="horario" class="seccion-app hidden animate-fade-in p-4 md:p-8">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
             <h2 class="text-2xl md:text-3xl font-bold text-slate-800">Mi Horario</h2>
-            <span class="text-xs md:text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-wand-magic-sparkles"></i> Generado Automáticamente</span>
+            <div class="flex items-center gap-3">
+                <button onclick="abrirConfigHorario()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-50 transition shadow-sm flex items-center">
+                    <i class="fa-solid fa-gear mr-2"></i> Ajustar Horas
+                </button>
+                <span class="text-xs md:text-sm bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-medium shadow-sm whitespace-nowrap"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto</span>
+            </div>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-slate-100 w-full overflow-x-auto">
             <div class="min-w-[800px] p-4 md:p-6">
@@ -236,7 +239,7 @@
         <div id="contenedor-asignaturas" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
     </section>
 
-    <!-- NUEVO: GESTOR DE TESTS Y EXÁMENES -->
+    <!-- GESTOR DE TESTS Y EXÁMENES -->
     <section id="tests-manager" class="seccion-app hidden animate-fade-in p-4 md:p-8">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
             <h2 class="text-2xl md:text-3xl font-bold text-slate-800">Repaso y Tests</h2>
@@ -245,13 +248,11 @@
             </button>
         </div>
         <div id="contenedor-lista-tests" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- JS inyectará las tarjetas de los tests aquí -->
         </div>
     </section>
 
-    <!-- NUEVO: REPRODUCTOR DE TEST (LA INTERFAZ DEL EXAMEN) -->
+    <!-- REPRODUCTOR DE TEST -->
     <section id="test-runner" class="seccion-app hidden animate-fade-in flex flex-col h-full bg-slate-900 relative">
-        <!-- Barra superior del test -->
         <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 relative">
             <div>
                 <h3 id="runner-titulo" class="font-bold text-lg text-pink-400">Título del Test</h3>
@@ -263,26 +264,21 @@
             </div>
         </div>
 
-        <!-- Barra de progreso visual -->
         <div class="h-1.5 bg-slate-700 w-full shrink-0"><div id="runner-progreso-barra" class="h-full bg-pink-500 transition-all duration-300 w-0"></div></div>
 
-        <!-- Contenedor central del test -->
         <div class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center justify-center relative z-10">
             <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300" id="runner-tarjeta">
-
                 <div class="p-6 md:p-10 flex-1">
                     <p id="runner-enunciado" class="text-xl md:text-2xl font-bold text-slate-800 mb-8 leading-relaxed">¿Pregunta?</p>
                     <div id="runner-opciones" class="space-y-3"></div>
                 </div>
 
-                <!-- Zona de Feedback de Dopamina -->
                 <div id="runner-feedback" class="hidden p-6 text-center animate-fade-in border-t border-slate-100">
                     <div id="runner-feedback-icon" class="text-4xl mb-2"></div>
                     <h4 id="runner-feedback-title" class="font-black text-xl mb-1">¡Correcto!</h4>
                     <p id="runner-feedback-exp" class="text-sm text-slate-600 bg-slate-50 p-4 rounded-lg mt-4 shadow-inner text-left font-medium"></p>
                 </div>
 
-                <!-- Botonera -->
                 <div class="bg-slate-50 p-4 md:p-6 flex justify-between items-center border-t border-slate-200">
                     <button id="btn-saltar" onclick="comprobarRespuestaTest(true)" class="text-slate-500 font-bold hover:text-slate-700 px-4 py-2">Saltar</button>
                     <button id="btn-comprobar" onclick="comprobarRespuestaTest(false)" class="bg-pink-500 text-white font-bold px-8 py-3 rounded-xl hover:bg-pink-600 shadow-md transition transform active:scale-95">Comprobar</button>
@@ -290,8 +286,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Efecto Confetti -->
         <div id="runner-fx" class="absolute inset-0 pointer-events-none z-0 opacity-0 transition-opacity duration-500"></div>
     </section>
 
@@ -339,27 +333,18 @@
 </div>
 
 <!-- MODALES -->
-
 <!-- Modal de Bienvenida / Perfil -->
 <div id="modal-bienvenida" class="fixed inset-0 bg-slate-900 bg-opacity-90 hidden flex items-center justify-center z-50 backdrop-blur-md transition-opacity p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in flex flex-col md:flex-row max-h-[90vh] overflow-y-auto">
-
         <div class="bg-blue-600 md:w-1/3 p-6 md:p-8 text-white flex flex-col justify-center items-center text-center shrink-0">
             <i class="fa-solid fa-rocket text-5xl md:text-6xl mb-4 drop-shadow-md"></i>
             <h3 class="text-xl md:text-2xl font-bold mb-2">¡Bienvenido!</h3>
             <p class="text-blue-100 text-xs md:text-sm">Vamos a personalizar tu panel de control para que te sientas como en casa.</p>
         </div>
-
         <div class="p-6 md:p-8 md:w-2/3">
             <form id="form-perfil" onsubmit="guardarPerfilPersonalizado(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">¿Cómo te llamas?</label>
-                    <input type="text" id="perfil-nombre" required value="Jose" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Centro de Estudios</label>
-                    <input type="text" id="perfil-instituto" required value="IES Alfonso X El Sabio" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
+                <div><label class="block text-sm font-bold text-slate-700 mb-1">¿Cómo te llamas?</label><input type="text" id="perfil-nombre" required value="Jose" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
+                <div><label class="block text-sm font-bold text-slate-700 mb-1">Centro de Estudios</label><input type="text" id="perfil-instituto" required value="IES Alfonso X El Sabio" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"></div>
                 <div>
                     <label class="block text-sm font-bold text-slate-700 mb-1">¿De dónde eres? (Ciudad/Localidad)</label>
                     <div class="flex gap-2">
@@ -369,17 +354,48 @@
                         </button>
                     </div>
                 </div>
-                <div class="pt-2">
-                    <button type="submit" class="w-full bg-slate-900 text-white px-6 py-4 rounded-lg hover:bg-slate-800 transition font-bold shadow-lg flex items-center justify-center">
-                        Empezar el curso <i class="fa-solid fa-arrow-right ml-2"></i>
-                    </button>
-                </div>
+                <div class="pt-2"><button type="submit" class="w-full bg-slate-900 text-white px-6 py-4 rounded-lg hover:bg-slate-800 transition font-bold shadow-lg flex items-center justify-center">Empezar el curso <i class="fa-solid fa-arrow-right ml-2"></i></button></div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- NUEVO: Modal Editor de un Test -->
+<!-- NUEVO: Modal Configuración del Horario -->
+<div id="modal-config-horario" class="fixed inset-0 bg-slate-900 bg-opacity-80 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+        <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
+            <h3 class="font-bold text-lg"><i class="fa-solid fa-clock mr-2"></i> Ajustar Horas y Recreos</h3>
+            <button onclick="document.getElementById('modal-config-horario').classList.add('hidden')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-2xl"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50">
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="font-bold text-slate-700 text-lg">Horas de Clase</h4>
+                    <button onclick="addConfigTramo()" class="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-200 transition font-bold"><i class="fa-solid fa-plus mr-1"></i> Añadir Hora</button>
+                </div>
+                <div id="lista-config-tramos" class="space-y-2"></div>
+            </div>
+
+            <hr class="border-slate-200 mb-6">
+
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="font-bold text-slate-700 text-lg">Recreos y Descansos</h4>
+                    <button onclick="addConfigRecreo()" class="text-xs bg-green-100 text-green-600 px-3 py-1.5 rounded hover:bg-green-200 transition font-bold"><i class="fa-solid fa-plus mr-1"></i> Añadir Recreo</button>
+                </div>
+                <div id="lista-config-recreos" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 border-t border-slate-200 flex justify-end gap-3 shrink-0">
+            <button onclick="document.getElementById('modal-config-horario').classList.add('hidden')" class="px-6 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded">Cancelar</button>
+            <button onclick="guardarConfigHorario()" class="bg-slate-900 text-white px-8 py-2 rounded font-bold hover:bg-slate-800 shadow-md">Guardar Horario</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editor de un Test -->
 <div id="modal-editor-test" class="fixed inset-0 bg-slate-900 bg-opacity-80 hidden flex items-center justify-center z-50 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden animate-fade-in">
         <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
@@ -415,9 +431,7 @@
             <div id="form-pregunta-box" class="hidden mt-6 bg-white p-4 border-2 border-pink-200 rounded-xl shadow-sm relative">
                 <button onclick="document.getElementById('form-pregunta-box').classList.add('hidden')" class="absolute top-2 right-2 text-slate-400 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
                 <h5 class="font-bold text-pink-600 mb-4"><i class="fa-solid fa-gears mr-1"></i> Configurar Pregunta</h5>
-
                 <input type="hidden" id="edit-preg-index" value="-1">
-
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Tipo de Pregunta</label>
                     <select id="edit-preg-tipo" onchange="cambiarTipoPreguntaEditor()" class="w-full p-2 border border-slate-200 rounded bg-slate-50">
@@ -427,19 +441,15 @@
                         <option value="fill">Rellenar hueco (Escribir)</option>
                     </select>
                 </div>
-
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Enunciado</label>
                     <textarea id="edit-preg-enunciado" rows="2" placeholder="Ej. Java es un lenguaje compilado..." class="w-full p-2 border border-slate-200 rounded bg-slate-50 resize-none"></textarea>
                 </div>
-
                 <div id="edit-preg-opciones-box" class="mb-4 bg-slate-50 p-3 rounded border border-slate-100"></div>
-
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Explicación (Feedback para el alumno)</label>
                     <textarea id="edit-preg-explicacion" rows="2" placeholder="Ej. Sí, porque usa el compilador javac para generar el bytecode." class="w-full p-2 border border-slate-200 rounded bg-slate-50 resize-none"></textarea>
                 </div>
-
                 <button onclick="guardarPreguntaEnTest()" class="w-full bg-pink-500 text-white font-bold py-2 rounded hover:bg-pink-600">Guardar Pregunta en el Test</button>
             </div>
         </div>
@@ -451,7 +461,7 @@
     </div>
 </div>
 
-<!-- NUEVO: Modal de Resultados Finales -->
+<!-- Modal de Resultados Finales -->
 <div id="modal-resultados" class="fixed inset-0 bg-slate-900 bg-opacity-95 hidden flex items-center justify-center z-50 p-4 backdrop-blur-md">
     <div id="resultados-card" class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden text-center transform transition-transform scale-90 duration-500 relative">
         <div id="resultados-header" class="p-8 text-white">

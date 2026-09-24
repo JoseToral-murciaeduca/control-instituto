@@ -8,13 +8,12 @@ let appData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     asignaturas: [],
     perfil: null,
     tests: [],
-    configHorario: null // NUEVO: Aquí guardaremos tus horas y recreos personalizados
+    configHorario: null // NUEVO: Aquí guardamos tus horas y recreos dinámicos
 };
 
-// MIGRACIONES DE SEGURIDAD Y DATOS POR DEFECTO
-if (!appData.tests) appData.tests = [];
+// Migración de seguridad por si tenías datos antiguos
+if(!appData.tests) appData.tests = [];
 if (!appData.configHorario) {
-    // Si es la primera vez, cargamos tu horario de tarde por defecto
     appData.configHorario = {
         tramos: [
             { id: 1, inicio: "15:20", fin: "16:15" },
@@ -29,7 +28,6 @@ if (!appData.configHorario) {
         ]
     };
 }
-
 appData.asignaturas.forEach(asig => {
     if (!asig.notas) asig.notas = [];
     if (!asig.sesiones) asig.sesiones = [];
@@ -43,7 +41,7 @@ function guardarDatos() {
     actualizarUI();
 }
 
-// Helper: Generador de selects dinámicos basado en la configuración del usuario
+// Helper: Generador de selects dinámicos para los formularios
 function getHorasSelectHTML() {
     let html = '<option value="" disabled selected>Elige franja horaria...</option>';
     appData.configHorario.tramos.forEach((t, i) => {
@@ -133,9 +131,7 @@ window.guardarConfigHorario = function() {
 function cambiarSeccion(idSeccion) {
     document.querySelectorAll('.seccion-app').forEach(sec => sec.classList.add('hidden'));
     document.getElementById(idSeccion).classList.remove('hidden');
-
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
     if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
         toggleSidebar();
     }
@@ -165,10 +161,8 @@ window.guardarPerfilPersonalizado = function(e) {
     const nombre = document.getElementById('perfil-nombre').value.trim();
     const instituto = document.getElementById('perfil-instituto').value.trim();
     const ciudad = document.getElementById('perfil-ciudad').value.trim();
-
     const promptTexto = `beautiful landscape of ${ciudad}, near ${instituto}, cinematic lighting, high resolution, realistic`;
     const urlBanner = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptTexto)}?width=1600&height=900&nologo=true`;
-
     appData.perfil = { nombre, instituto, ciudad, banner: urlBanner };
     guardarDatos();
     document.getElementById('modal-bienvenida').classList.add('hidden');
@@ -177,29 +171,21 @@ window.guardarPerfilPersonalizado = function(e) {
 
 window.detectarUbicacion = function() {
     const inputCiudad = document.getElementById('perfil-ciudad');
-    if (!navigator.geolocation) {
-        alert("Tu navegador no soporta la geolocalización."); return;
-    }
-    const textoOriginal = inputCiudad.value;
-    inputCiudad.value = "Detectando ubicación...";
-    inputCiudad.disabled = true;
-
+    if (!navigator.geolocation) { alert("Tu navegador no soporta la geolocalización."); return; }
+    const textoOriginal = inputCiudad.value; inputCiudad.value = "Detectando ubicación..."; inputCiudad.disabled = true;
     navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude, lon = position.coords.longitude;
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
             const data = await response.json();
             const ciudad = data.address.city || data.address.town || data.address.village || data.address.municipality || "Ubicación desconocida";
             const provincia = data.address.state || data.address.province || "";
             inputCiudad.value = provincia ? `${ciudad}, ${provincia}` : ciudad;
         } catch (error) {
-            inputCiudad.value = textoOriginal;
-            alert("No se pudo obtener el nombre de la ciudad.");
-        } finally {
-            inputCiudad.disabled = false;
-        }
+            inputCiudad.value = textoOriginal; alert("No se pudo obtener el nombre de la ciudad. Por favor, escríbela a mano.");
+        } finally { inputCiudad.disabled = false; }
     }, (error) => {
         inputCiudad.value = textoOriginal; inputCiudad.disabled = false;
+        alert("No has dado permiso o hay un error con la ubicación. Por favor, escríbela a mano.");
     });
 }
 
@@ -215,18 +201,17 @@ window.abrirEdicionPerfil = function() {
 function aplicarPersonalizacion() {
     if (!appData.perfil) return;
     const textInstituto = document.getElementById('sidebar-instituto');
+    if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
     const textSaludo = document.getElementById('dash-saludo');
     const textUbicacion = document.getElementById('dash-ubicacion');
     const banner = document.getElementById('dash-banner');
-
-    if(textInstituto) textInstituto.innerHTML = `<i class="fa-solid fa-building-columns mr-1"></i> ${appData.perfil.instituto}`;
     if(textSaludo) textSaludo.innerHTML = `Hola, ${appData.perfil.nombre} 👋`;
     if(textUbicacion) textUbicacion.innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i> ${appData.perfil.ciudad}`;
-    if(banner && appData.perfil.banner) banner.style.backgroundImage = `url('${appData.perfil.banner}')`;
+    if(banner && appData.perfil.banner) { banner.style.backgroundImage = `url('${appData.perfil.banner}')`; }
 }
 
 // ==========================================
-// 1. MÓDULO CENTRAL: GESTIÓN DE ASIGNATURAS
+// 1. GESTIÓN DE ASIGNATURAS
 // ==========================================
 const formCrearAsignatura = document.getElementById('form-crear-asignatura');
 let contadorFilasHorario = 0;
@@ -363,12 +348,13 @@ window.borrarSesion = function(idAsig, indexSesion) {
 }
 window.eliminarAsignaturaMaster = function(idAsig) {
     if(confirm("⚠️ ¿Borrar asignatura? Se eliminará del horario y se perderán sus calificaciones.")) {
-        appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig); guardarDatos();
+        appData.asignaturas = appData.asignaturas.filter(a => a.id !== idAsig);
+        guardarDatos();
     }
 }
 
 // ==========================================
-// 2. HORARIO AUTOMÁTICO DINÁMICO (Con Ajustes)
+// 2. HORARIO AUTOMÁTICO DINÁMICO
 // ==========================================
 function renderizarHorarioAuto() {
     const tablaHorario = document.getElementById('tabla-horario');
@@ -377,26 +363,27 @@ function renderizarHorarioAuto() {
     let fullHTML = '';
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 
-    // 1. Dibujar Recreos que van antes de empezar las clases (index -1)
+    // 1. Recreos antes de las clases (index = -1)
     const recreosIniciales = appData.configHorario.recreos.filter(r => r.despuesDeIndex === -1);
     recreosIniciales.forEach(r => {
         fullHTML += `<tr class="bg-slate-200 border-y border-slate-300 text-center shadow-inner"><td colspan="6" class="py-2"><span class="text-slate-600 font-bold text-[10px] md:text-xs uppercase tracking-widest"><i class="fa-solid fa-mug-hot mr-2"></i> ${r.descripcion || 'Recreo'} (${r.inicio} - ${r.fin})</span></td></tr>`;
     });
 
-    // 2. Dibujar las Horas de clase y los Recreos intermedios
+    // 2. Clases y recreos intermedios
     appData.configHorario.tramos.forEach((tramo, index) => {
         let f = `<tr><td class="border border-slate-200 bg-white text-center align-middle p-2 w-16 md:w-20 shadow-sm relative z-10"><span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo.inicio}</span><span class="block font-bold text-slate-800 text-xs md:text-sm leading-tight">${tramo.fin}</span></td>`;
 
-        dias.forEach(d => {
-            const asigEncontrada = appData.asignaturas.find(x => x.sesiones.some(y => y.dia === d && y.hora === tramo.id));
-            if(asigEncontrada) {
+        dias.forEach(dia => {
+            const asigEncontrada = appData.asignaturas.find(a => a.sesiones.some(s => s.dia === dia && s.hora === tramo.id));
+            if (asigEncontrada) {
                 const iconoMeet = asigEncontrada.enlace ? `<a href="${asigEncontrada.enlace}" target="_blank" class="block mt-2 text-[10px] bg-white bg-opacity-50 text-slate-700 py-1 rounded hover:bg-white transition" title="Abrir clase"><i class="fa-solid fa-video text-blue-600"></i></a>` : '';
-                f += `<td class="border border-slate-200 p-1 md:p-2 h-20 md:h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
+                f += `
+                    <td class="border border-slate-200 p-1 md:p-2 h-20 md:h-24 text-center relative overflow-hidden align-middle" style="background-color: ${asigEncontrada.color}15;">
                         <div class="absolute left-0 top-0 bottom-0 w-1" style="background-color: ${asigEncontrada.color}"></div>
                         <span class="font-bold text-[10px] md:text-sm block leading-tight" style="color: ${asigEncontrada.color}">${asigEncontrada.nombre}</span>
                         <span class="text-[9px] md:text-[10px] text-slate-500 block leading-tight mt-1">${asigEncontrada.profesor || ''}</span>
                         ${iconoMeet}
-                      </td>`;
+                    </td>`;
             } else {
                 f += `<td class="border border-slate-200 border-dashed p-2 h-24 text-center align-middle"><span class="text-slate-300 text-[10px]">Libre</span></td>`;
             }
@@ -502,7 +489,7 @@ function renderizarCalificaciones() {
                 <form onsubmit="calcularObjetivo(event, ${asig.id}, ${media})" class="flex gap-2 items-center">
                     <input type="number" step="0.1" min="0" max="10" id="calc-meta-${asig.id}" placeholder="Nota" required class="w-full p-1.5 md:p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none">
                     <input type="number" step="1" min="1" max="100" id="calc-peso-${asig.id}" placeholder="Peso %" required class="w-16 md:w-20 p-1.5 md:p-2 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 focus:outline-none" title="Cuánto vale este examen del total de la nota">
-                    <button type="submit" class="bg-blue-600 text-white px-2 py-1.5 md:py-2 rounded hover:bg-blue-700 transition shadow-sm font-bold text-xs"><i class="fa-solid fa-calculator"></i></button>
+                    <button type="submit" class="bg-blue-600 text-white px-2 py-1.5 md:py-2 rounded transition shadow-sm font-bold text-xs"><i class="fa-solid fa-calculator"></i></button>
                 </form>
                 <div id="calc-resultado-${asig.id}" class="mt-2 text-xs md:text-sm hidden"></div>
             </div>`;
@@ -513,14 +500,10 @@ function renderizarCalificaciones() {
             <div class="absolute top-0 left-0 right-0 h-2" style="background-color: ${asig.color}"></div>
             <div class="flex justify-between items-start mt-2 mb-4 pb-4 border-b border-slate-100">
                 <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-2">${asig.nombre}</h3>
-                <div class="text-right shrink-0">
-                    <span class="block text-2xl md:text-3xl font-black ${colorMedia} leading-none">${media}</span>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Media Ponderada</span>
-                </div>
+                <div class="text-right shrink-0"><span class="block text-2xl md:text-3xl font-black ${colorMedia} leading-none">${media}</span></div>
             </div>
             <div class="flex-1 mb-4">${htmlNotas || '<p class="text-xs md:text-sm text-slate-400 italic text-center py-4">Sin notas registradas.</p>'}${htmlCalculadora}</div>
             <div class="mt-auto pt-4 bg-slate-50 -mx-4 -mb-4 md:-mx-6 md:-mb-6 p-4 md:p-6 rounded-b-xl border-t border-slate-100">
-                <h4 class="text-[9px] md:text-[10px] font-bold uppercase text-slate-400 mb-2">Añadir nueva nota real</h4>
                 <form onsubmit="agregarNota(event, ${asig.id})" class="flex gap-2">
                     <input type="text" id="nota-nombre-${asig.id}" placeholder="Examen" required class="w-1/2 p-2 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
                     <input type="number" step="0.01" min="0" max="10" id="nota-valor-${asig.id}" placeholder="Nota" required class="w-1/4 p-2 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-yellow-400 focus:outline-none">
@@ -552,13 +535,11 @@ window.reiniciarCurso = function() { if (confirm("⚠️ ATENCIÓN: Estás a pun
 function renderizarDashboard() {
     const diasJS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
     const diaHoy = diasJS[new Date().getDay()];
-
     const spanDia = document.getElementById('dash-dia-actual');
     if(spanDia) spanDia.textContent = (diaHoy === 'sabado' || diaHoy === 'domingo') ? 'Fin de semana' : diaHoy;
 
     const contenedorClases = document.getElementById('lista-clases-hoy');
     const contadorClases = document.getElementById('dash-clases-hoy');
-
     if (contenedorClases && contadorClases) {
         let clasesHoy = [];
         appData.asignaturas.forEach(asig => {
@@ -568,7 +549,6 @@ function renderizarDashboard() {
                 }
             });
         });
-
         clasesHoy.sort((a, b) => a.hora - b.hora);
         contadorClases.textContent = clasesHoy.length;
 
@@ -578,8 +558,6 @@ function renderizarDashboard() {
             let htmlClases = '';
             clasesHoy.forEach(clase => {
                 const btnMeet = clase.enlace ? `<a href="${clase.enlace}" target="_blank" class="text-[10px] md:text-xs font-bold bg-white text-blue-600 px-2 py-1 md:px-3 md:py-1.5 rounded-lg hover:bg-blue-50 transition shadow-sm border border-slate-200 shrink-0">Entrar</a>` : '';
-
-                // ACTUALIZADO: Buscamos la hora en la configuración dinámica del usuario
                 const tramo = appData.configHorario.tramos.find(tr => tr.id === clase.hora);
                 const oIdx = appData.configHorario.tramos.findIndex(tr => tr.id === clase.hora);
 
@@ -610,15 +588,39 @@ function renderizarDashboard() {
     if (listaTareasDash && dashPendientes) {
         let pendientes = appData.tareas.filter(t => !t.completada);
         dashPendientes.textContent = pendientes.length;
-        if (pendientes.length === 0) { listaTareasDash.innerHTML = `<li class="py-6 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2 text-sm">Todo al día. No hay tareas pendientes.</li>`; }
-        else {
-            pendientes.sort((a, b) => { if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha); if (a.fecha && !b.fecha) return -1; if (!a.fecha && b.fecha) return 1; return 0; });
-            const hoyStr = new Date().toISOString().split('T')[0]; let htmlTareas = '';
+
+        if (pendientes.length === 0) {
+            listaTareasDash.innerHTML = `<li class="py-6 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-dashed border-slate-200 mt-2 text-sm">Todo al día. No hay tareas pendientes.</li>`;
+        } else {
+            pendientes.sort((a, b) => {
+                if (a.fecha && b.fecha) return a.fecha.localeCompare(b.fecha);
+                if (a.fecha && !b.fecha) return -1;
+                if (!a.fecha && b.fecha) return 1;
+                return 0;
+            });
+            const hoyStr = new Date().toISOString().split('T')[0];
+            let htmlTareas = '';
             pendientes.slice(0, 5).forEach(tarea => {
-                const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura); const colorPunto = asigInfo ? asigInfo.color : '#cbd5e1';
+                const asigInfo = appData.asignaturas.find(a => a.nombre === tarea.asignatura);
+                const colorPunto = asigInfo ? asigInfo.color : '#cbd5e1';
                 let badgeFechaDash = '';
-                if(tarea.fecha) { const esVencida = tarea.fecha <= hoyStr; const colorBadge = esVencida ? 'text-red-600 bg-red-100' : 'text-slate-600 bg-slate-100'; const partes = tarea.fecha.split('-'); badgeFechaDash = `<span class="ml-1 md:ml-2 px-1 py-0.5 rounded text-[9px] md:text-[10px] font-bold ${colorBadge}">${partes[2]}/${partes[1]}</span>`; }
-                htmlTareas += `<li class="py-2.5 md:py-3 flex justify-between items-center group border-b border-slate-50 last:border-0"><div class="flex items-center gap-2 overflow-hidden flex-1"><div class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div><span class="text-slate-700 text-xs md:text-sm font-medium truncate flex-1 flex items-center">${tarea.titulo} ${badgeFechaDash}</span></div><button onclick="toggleTarea(${tarea.id})" class="text-[10px] md:text-xs bg-green-50 text-green-600 px-2 py-1 md:px-3 md:py-1.5 rounded border border-green-200 ml-2 shrink-0"><i class="fa-solid fa-check"></i></button></li>`;
+                if(tarea.fecha) {
+                    const esVencida = tarea.fecha <= hoyStr;
+                    const colorBadge = esVencida ? 'text-red-600 bg-red-100' : 'text-slate-600 bg-slate-100';
+                    const partes = tarea.fecha.split('-');
+                    badgeFechaDash = `<span class="ml-1 md:ml-2 px-1 py-0.5 rounded text-[9px] md:text-[10px] font-bold ${colorBadge}">${partes[2]}/${partes[1]}</span>`;
+                }
+                htmlTareas += `
+                    <li class="py-2.5 md:py-3 flex justify-between items-center group border-b border-slate-50 last:border-0">
+                        <div class="flex items-center gap-2 overflow-hidden flex-1">
+                            <div class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0" style="background-color: ${colorPunto}"></div>
+                            <span class="text-slate-700 text-xs md:text-sm font-medium truncate flex-1 flex items-center">${tarea.titulo} ${badgeFechaDash}</span>
+                        </div>
+                        <button onclick="toggleTarea(${tarea.id})" class="text-[10px] md:text-xs bg-green-50 text-green-600 px-2 py-1 md:px-3 md:py-1.5 rounded border border-green-200 ml-2 shrink-0">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                    </li>
+                `;
             });
             listaTareasDash.innerHTML = htmlTareas;
         }
@@ -627,102 +629,199 @@ function renderizarDashboard() {
     const widgetMedia = document.getElementById('dash-media-global');
     if (widgetMedia) {
         let sumaMedias = 0; let asignaturasConNota = 0;
-        appData.asignaturas.forEach(asig => { let sumaPesos = 0; let sumaNotas = 0; asig.notas.forEach(n => { sumaPesos += n.peso; sumaNotas += n.valor * n.peso; }); if (sumaPesos > 0) { sumaMedias += (sumaNotas / sumaPesos); asignaturasConNota++; } });
-        if (asignaturasConNota === 0) { widgetMedia.textContent = "-"; widgetMedia.className = "text-3xl font-bold text-slate-300"; }
-        else { const mediaGlobal = (sumaMedias / asignaturasConNota).toFixed(2); widgetMedia.textContent = mediaGlobal; widgetMedia.className = `text-3xl font-bold ${mediaGlobal >= 5 ? 'text-green-600' : 'text-red-500'}`; }
+        appData.asignaturas.forEach(asig => {
+            let sumaPesos = 0; let sumaNotas = 0;
+            asig.notas.forEach(n => { sumaPesos += n.peso; sumaNotas += n.valor * n.peso; });
+            if (sumaPesos > 0) { sumaMedias += (sumaNotas / sumaPesos); asignaturasConNota++; }
+        });
+        if (asignaturasConNota === 0) {
+            widgetMedia.textContent = "-"; widgetMedia.className = "text-3xl font-bold text-slate-300";
+        } else {
+            const mediaGlobal = (sumaMedias / asignaturasConNota).toFixed(2);
+            widgetMedia.textContent = mediaGlobal;
+            widgetMedia.className = `text-3xl font-bold ${mediaGlobal >= 5 ? 'text-green-600' : 'text-red-500'}`;
+        }
     }
 }
 
-
 // ==========================================
-// 7. MOTOR DE EXÁMENES (TESTS Y DOPAMINA)
+// 7. MOTOR DE EXÁMENES Y TESTS
 // ==========================================
 let testEnEdicion = null;
 
 function renderizarTestsDashboard() {
-    const contenedor = document.getElementById('contenedor-lista-tests'); const selectAsig = document.getElementById('edit-test-asig');
+    const contenedor = document.getElementById('contenedor-lista-tests');
+    const selectAsig = document.getElementById('edit-test-asig');
     if (!contenedor || !selectAsig) return;
-    selectAsig.innerHTML = ''; appData.asignaturas.forEach(a => selectAsig.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+
+    selectAsig.innerHTML = '';
+    appData.asignaturas.forEach(a => selectAsig.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
     contenedor.innerHTML = '';
-    if (appData.tests.length === 0) { contenedor.innerHTML = '<div class="col-span-full text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">No hay tests creados. ¡Crea el primero!</div>'; return; }
+
+    if (appData.tests.length === 0) {
+        contenedor.innerHTML = '<div class="col-span-full text-center p-8 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">No hay tests creados. ¡Crea el primero!</div>';
+        return;
+    }
 
     appData.tests.forEach(test => {
-        const asig = appData.asignaturas.find(a => a.nombre === test.asignatura); const color = asig ? asig.color : '#ec4899';
-        contenedor.innerHTML += `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-md transition group"><div class="h-2 w-full" style="background-color: ${color}"></div><div class="p-6 flex-1"><span class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">${test.asignatura} • ${test.tema}</span><h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${test.titulo}</h3><p class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-list-ol mr-1"></i> ${test.preguntas.length} preguntas</p></div><div class="bg-slate-50 p-4 border-t border-slate-100 flex gap-2"><button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 rounded-lg hover:bg-slate-800 transition shadow-sm transform active:scale-95 text-sm"><i class="fa-solid fa-play mr-1"></i> Iniciar</button><button onclick="abrirEditorTest(${test.id})" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-300 transition text-sm" title="Editar Test"><i class="fa-solid fa-pen"></i></button><button onclick="borrarTest(${test.id})" class="bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 transition text-sm" title="Borrar Test"><i class="fa-solid fa-trash"></i></button></div></div>`;
+        const asig = appData.asignaturas.find(a => a.nombre === test.asignatura);
+        const color = asig ? asig.color : '#ec4899';
+        contenedor.innerHTML += `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col hover:shadow-md transition group">
+                <div class="h-2 w-full" style="background-color: ${color}"></div>
+                <div class="p-6 flex-1">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block">${test.asignatura} • ${test.tema}</span>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2 leading-tight">${test.titulo}</h3>
+                    <p class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-list-ol mr-1"></i> ${test.preguntas.length} preguntas</p>
+                </div>
+                <div class="bg-slate-50 p-4 border-t border-slate-100 flex gap-2">
+                    <button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 rounded-lg hover:bg-slate-800 transition shadow-sm transform active:scale-95 text-sm"><i class="fa-solid fa-play mr-1"></i> Iniciar</button>
+                    <button onclick="abrirEditorTest(${test.id})" class="bg-slate-200 text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-300 transition text-sm" title="Editar Test"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="borrarTest(${test.id})" class="bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 transition text-sm" title="Borrar Test"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>`;
     });
 }
 
 window.abrirEditorTest = function(id = null) {
     document.getElementById('form-pregunta-box').classList.add('hidden');
-    if (id) { testEnEdicion = JSON.parse(JSON.stringify(appData.tests.find(t => t.id === id))); } else { testEnEdicion = { id: Date.now(), asignatura: appData.asignaturas[0]?.nombre || '', tema: '', titulo: '', preguntas: [] }; }
-    document.getElementById('edit-test-asig').value = testEnEdicion.asignatura; document.getElementById('edit-test-tema').value = testEnEdicion.tema; document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
-    renderizarPreguntasEditor(); document.getElementById('modal-editor-test').classList.remove('hidden');
+    if (id) {
+        testEnEdicion = JSON.parse(JSON.stringify(appData.tests.find(t => t.id === id)));
+    } else {
+        testEnEdicion = { id: Date.now(), asignatura: appData.asignaturas[0]?.nombre || '', tema: '', titulo: '', preguntas: [] };
+    }
+    document.getElementById('edit-test-asig').value = testEnEdicion.asignatura;
+    document.getElementById('edit-test-tema').value = testEnEdicion.tema;
+    document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
+    renderizarPreguntasEditor();
+    document.getElementById('modal-editor-test').classList.remove('hidden');
 }
 
-window.cerrarEditorTest = function() { document.getElementById('modal-editor-test').classList.add('hidden'); testEnEdicion = null; }
-window.borrarTest = function(id) { if(confirm("⚠️ ¿Seguro que quieres borrar este test por completo?")) { appData.tests = appData.tests.filter(t => t.id !== id); guardarDatos(); } }
+window.cerrarEditorTest = function() {
+    document.getElementById('modal-editor-test').classList.add('hidden');
+    testEnEdicion = null;
+}
+
+window.borrarTest = function(id) {
+    if(confirm("⚠️ ¿Seguro que quieres borrar este test por completo?")) {
+        appData.tests = appData.tests.filter(t => t.id !== id); guardarDatos();
+    }
+}
 
 function renderizarPreguntasEditor() {
-    const lista = document.getElementById('lista-preguntas-editor'); lista.innerHTML = '';
-    if(testEnEdicion.preguntas.length === 0) { lista.innerHTML = '<p class="text-sm text-slate-400 italic text-center py-4">Aún no hay preguntas. Pulsa Añadir Pregunta.</p>'; return; }
+    const lista = document.getElementById('lista-preguntas-editor');
+    lista.innerHTML = '';
+    if(testEnEdicion.preguntas.length === 0) {
+        lista.innerHTML = '<p class="text-sm text-slate-400 italic text-center py-4">Aún no hay preguntas. Pulsa Añadir Pregunta.</p>'; return;
+    }
+
     testEnEdicion.preguntas.forEach((p, idx) => {
         let tipoIcon = p.tipo === 'vf' ? 'fa-scale-balanced' : p.tipo === 'fill' ? 'fa-keyboard' : 'fa-list-check';
-        lista.innerHTML += `<div class="bg-white p-3 border border-slate-200 rounded-lg flex justify-between items-center gap-4 hover:border-pink-300 transition cursor-pointer" onclick="abrirFormularioPregunta(${idx})"><div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0 text-slate-400"><i class="fa-solid ${tipoIcon} text-xs"></i></div><div class="flex-1 truncate"><p class="text-sm font-bold text-slate-700 truncate">${p.enunciado}</p><p class="text-[10px] text-slate-400 uppercase tracking-wide">Pregunta ${idx + 1}</p></div><button onclick="event.stopPropagation(); borrarPreguntaDeTest(${idx})" class="text-red-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash-can"></i></button></div>`;
+        lista.innerHTML += `
+            <div class="bg-white p-3 border border-slate-200 rounded-lg flex justify-between items-center gap-4 hover:border-pink-300 transition cursor-pointer" onclick="abrirFormularioPregunta(${idx})">
+                <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0 text-slate-400"><i class="fa-solid ${tipoIcon} text-xs"></i></div>
+                <div class="flex-1 truncate"><p class="text-sm font-bold text-slate-700 truncate">${p.enunciado}</p><p class="text-[10px] text-slate-400 uppercase tracking-wide">Pregunta ${idx + 1}</p></div>
+                <button onclick="event.stopPropagation(); borrarPreguntaDeTest(${idx})" class="text-red-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash-can"></i></button>
+            </div>`;
     });
 }
 
 window.abrirFormularioPregunta = function(idx = -1) {
-    document.getElementById('form-pregunta-box').classList.remove('hidden'); document.getElementById('edit-preg-index').value = idx;
-    if (idx >= 0) { const p = testEnEdicion.preguntas[idx]; document.getElementById('edit-preg-tipo').value = p.tipo; document.getElementById('edit-preg-enunciado').value = p.enunciado; document.getElementById('edit-preg-explicacion').value = p.explicacion; cambiarTipoPreguntaEditor(p); }
-    else { document.getElementById('edit-preg-tipo').value = 'single'; document.getElementById('edit-preg-enunciado').value = ''; document.getElementById('edit-preg-explicacion').value = ''; cambiarTipoPreguntaEditor(); }
+    document.getElementById('form-pregunta-box').classList.remove('hidden');
+    document.getElementById('edit-preg-index').value = idx;
+    if (idx >= 0) {
+        const p = testEnEdicion.preguntas[idx];
+        document.getElementById('edit-preg-tipo').value = p.tipo;
+        document.getElementById('edit-preg-enunciado').value = p.enunciado;
+        document.getElementById('edit-preg-explicacion').value = p.explicacion;
+        cambiarTipoPreguntaEditor(p);
+    } else {
+        document.getElementById('edit-preg-tipo').value = 'single';
+        document.getElementById('edit-preg-enunciado').value = '';
+        document.getElementById('edit-preg-explicacion').value = '';
+        cambiarTipoPreguntaEditor();
+    }
 }
 
-window.borrarPreguntaDeTest = function(idx) { testEnEdicion.preguntas.splice(idx, 1); document.getElementById('form-pregunta-box').classList.add('hidden'); renderizarPreguntasEditor(); }
+window.borrarPreguntaDeTest = function(idx) {
+    testEnEdicion.preguntas.splice(idx, 1);
+    document.getElementById('form-pregunta-box').classList.add('hidden');
+    renderizarPreguntasEditor();
+}
 
 window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
-    const tipo = document.getElementById('edit-preg-tipo').value; const box = document.getElementById('edit-preg-opciones-box'); box.innerHTML = '';
+    const tipo = document.getElementById('edit-preg-tipo').value;
+    const box = document.getElementById('edit-preg-opciones-box');
+    box.innerHTML = '';
+
     if (tipo === 'vf') {
         let esCorrectaVerdadero = pregGuardada ? pregGuardada.respuestas[0] === 0 : true;
-        box.innerHTML = `<p class="text-xs font-bold text-slate-500 mb-2">Marca la opción correcta:</p><div class="flex gap-4"><label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="0" ${esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Verdadero</span></label><label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="1" ${!esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Falso</span></label></div>`;
+        box.innerHTML = `
+            <p class="text-xs font-bold text-slate-500 mb-2">Marca la opción correcta:</p>
+            <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="0" ${esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Verdadero</span></label>
+                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="1" ${!esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Falso</span></label>
+            </div>`;
     } else if (tipo === 'fill') {
         let val = pregGuardada ? pregGuardada.respuestas[0] : '';
-        box.innerHTML = `<p class="text-xs font-bold text-slate-500 mb-2">Escribe la palabra o código correcto:</p><input type="text" id="fill-correcta" value="${val}" placeholder="Ej. out" class="w-full p-2 border border-slate-300 rounded font-mono text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none"><p class="text-[10px] text-slate-400 mt-1 italic">* En el enunciado pon "___" donde quieres que el alumno escriba.</p>`;
+        box.innerHTML = `
+            <p class="text-xs font-bold text-slate-500 mb-2">Escribe la palabra o código correcto:</p>
+            <input type="text" id="fill-correcta" value="${val}" placeholder="Ej. out" class="w-full p-2 border border-slate-300 rounded font-mono text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+            <p class="text-[10px] text-slate-400 mt-1 italic">* En el enunciado pon "___" donde quieres que el alumno escriba.</p>`;
     } else {
         let typeInput = tipo === 'single' ? 'radio' : 'checkbox';
         box.innerHTML = `<p class="text-xs font-bold text-slate-500 mb-2">Escribe las opciones y marca la/s correcta/s:</p>`;
         for (let i = 0; i < 4; i++) {
-            let textoOpt = pregGuardada && pregGuardada.opciones[i] ? pregGuardada.opciones[i] : ''; let isChecked = pregGuardada && pregGuardada.respuestas.includes(i) ? 'checked' : (i===0 && tipo==='single' ? 'checked' : '');
+            let textoOpt = pregGuardada && pregGuardada.opciones[i] ? pregGuardada.opciones[i] : '';
+            let isChecked = pregGuardada && pregGuardada.respuestas.includes(i) ? 'checked' : (i===0 && tipo==='single' ? 'checked' : '');
             box.innerHTML += `<div class="flex items-center gap-2 mb-2"><input type="${typeInput}" name="multi-opt" value="${i}" ${isChecked} class="w-4 h-4 text-pink-500 focus:ring-pink-500 cursor-pointer"><input type="text" id="opt-text-${i}" value="${textoOpt}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 text-sm border border-slate-200 rounded focus:border-pink-400 focus:outline-none"></div>`;
         }
     }
 }
 
 window.guardarPreguntaEnTest = function() {
-    const idx = parseInt(document.getElementById('edit-preg-index').value); const tipo = document.getElementById('edit-preg-tipo').value; const enunciado = document.getElementById('edit-preg-enunciado').value.trim(); const explicacion = document.getElementById('edit-preg-explicacion').value.trim();
-    if(!enunciado) return alert("Falta el enunciado"); if(!explicacion) return alert("Falta la explicación");
-    let opciones = [], respuestas = [];
-    if (tipo === 'vf') { opciones = ["Verdadero", "Falso"]; respuestas = [parseInt(document.querySelector('input[name="vf-opt"]:checked').value)]; }
-    else if (tipo === 'fill') { let val = document.getElementById('fill-correcta').value.trim(); if(!val) return alert("Falta la respuesta correcta"); respuestas = [val]; }
-    else {
+    const idx = parseInt(document.getElementById('edit-preg-index').value);
+    const tipo = document.getElementById('edit-preg-tipo').value;
+    const enunciado = document.getElementById('edit-preg-enunciado').value.trim();
+    const explicacion = document.getElementById('edit-preg-explicacion').value.trim();
+
+    if(!enunciado) return alert("Falta el enunciado");
+    if(!explicacion) return alert("Falta la explicación para el feedback");
+
+    let opciones = []; let respuestas = [];
+
+    if (tipo === 'vf') {
+        opciones = ["Verdadero", "Falso"]; respuestas = [parseInt(document.querySelector('input[name="vf-opt"]:checked').value)];
+    } else if (tipo === 'fill') {
+        let val = document.getElementById('fill-correcta').value.trim();
+        if(!val) return alert("Falta la respuesta correcta"); respuestas = [val];
+    } else {
         for (let i = 0; i < 4; i++) { let txt = document.getElementById(`opt-text-${i}`).value.trim(); if(txt) opciones.push(txt); }
         if(opciones.length < 2) return alert("Debes rellenar al menos 2 opciones.");
         const checks = document.querySelectorAll('input[name="multi-opt"]:checked');
         checks.forEach(c => { const indexValue = parseInt(c.value); if(indexValue < opciones.length) respuestas.push(indexValue); });
         if(respuestas.length === 0) return alert("Debes marcar al menos una respuesta correcta.");
     }
+
     const nuevaPregunta = { tipo, enunciado, opciones, respuestas, explicacion };
     if (idx === -1) testEnEdicion.preguntas.push(nuevaPregunta); else testEnEdicion.preguntas[idx] = nuevaPregunta;
-    document.getElementById('form-pregunta-box').classList.add('hidden'); renderizarPreguntasEditor();
+    document.getElementById('form-pregunta-box').classList.add('hidden');
+    renderizarPreguntasEditor();
 }
 
 window.guardarTestCompleto = function() {
-    testEnEdicion.asignatura = document.getElementById('edit-test-asig').value; testEnEdicion.tema = document.getElementById('edit-test-tema').value.trim() || 'General'; testEnEdicion.titulo = document.getElementById('edit-test-titulo').value.trim() || 'Test sin título';
+    testEnEdicion.asignatura = document.getElementById('edit-test-asig').value;
+    testEnEdicion.tema = document.getElementById('edit-test-tema').value.trim() || 'General';
+    testEnEdicion.titulo = document.getElementById('edit-test-titulo').value.trim() || 'Test sin título';
+
     if(testEnEdicion.preguntas.length === 0) return alert("El test debe tener al menos una pregunta.");
     const index = appData.tests.findIndex(t => t.id === testEnEdicion.id);
     if (index >= 0) appData.tests[index] = testEnEdicion; else appData.tests.push(testEnEdicion);
+
     guardarDatos(); cerrarEditorTest();
 }
 
+// --- EJECUCIÓN DEL TEST (RUNNER) ---
 let runnerEstado = null;
 
 function mezclarArray(array) {
@@ -732,20 +831,29 @@ function mezclarArray(array) {
 }
 
 window.iniciarTest = function(idTest) {
-    const testInfo = appData.tests.find(t => t.id === idTest); if(!testInfo || testInfo.preguntas.length === 0) return;
+    const testInfo = appData.tests.find(t => t.id === idTest);
+    if(!testInfo || testInfo.preguntas.length === 0) return;
+
     runnerEstado = { test: testInfo, preguntas: mezclarArray(testInfo.preguntas), actual: 0, aciertos: 0, fallos: 0, blancos: 0 };
-    document.getElementById('runner-titulo').textContent = testInfo.titulo; document.getElementById('runner-tema').textContent = `${testInfo.asignatura} • ${testInfo.tema}`;
+    document.getElementById('runner-titulo').textContent = testInfo.titulo;
+    document.getElementById('runner-tema').textContent = `${testInfo.asignatura} • ${testInfo.tema}`;
+
     cambiarSeccion('test-runner'); pintarPreguntaActual();
 }
 
-window.cerrarTestEnEjecucion = function() { if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) { cambiarSeccion('tests-manager'); runnerEstado = null; } }
+window.cerrarTestEnEjecucion = function() {
+    if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) { cambiarSeccion('tests-manager'); runnerEstado = null; }
+}
 
 function pintarPreguntaActual() {
     const p = runnerEstado.preguntas[runnerEstado.actual]; const total = runnerEstado.preguntas.length;
-    document.getElementById('runner-progreso-texto').textContent = `${runnerEstado.actual + 1}/${total}`; document.getElementById('runner-progreso-barra').style.width = `${((runnerEstado.actual) / total) * 100}%`;
-    document.getElementById('runner-feedback').classList.add('hidden'); document.getElementById('btn-comprobar').classList.remove('hidden'); document.getElementById('btn-saltar').classList.remove('hidden'); document.getElementById('btn-siguiente').classList.add('hidden');
-    const uiOpciones = document.getElementById('runner-opciones'); uiOpciones.innerHTML = '';
 
+    document.getElementById('runner-progreso-texto').textContent = `${runnerEstado.actual + 1}/${total}`;
+    document.getElementById('runner-progreso-barra').style.width = `${((runnerEstado.actual) / total) * 100}%`;
+
+    document.getElementById('runner-feedback').classList.add('hidden'); document.getElementById('btn-comprobar').classList.remove('hidden'); document.getElementById('btn-saltar').classList.remove('hidden'); document.getElementById('btn-siguiente').classList.add('hidden');
+
+    const uiOpciones = document.getElementById('runner-opciones'); uiOpciones.innerHTML = '';
     let enunHtml = p.enunciado;
     if (p.tipo === 'fill') {
         enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
@@ -756,22 +864,33 @@ function pintarPreguntaActual() {
     if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
         let inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
         p.opciones.forEach((optTexto, idx) => {
-            uiOpciones.innerHTML += `<label class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-pink-300 transition group"><input type="${inputType}" name="runner-opt" value="${idx}" class="w-5 h-5 text-pink-500 focus:ring-pink-500 border-slate-300"><span class="text-slate-700 font-medium text-lg group-hover:text-pink-700 transition">${optTexto}</span></label>`;
+            uiOpciones.innerHTML += `
+                <label class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-pink-300 transition group">
+                    <input type="${inputType}" name="runner-opt" value="${idx}" class="w-5 h-5 text-pink-500 focus:ring-pink-500 border-slate-300">
+                    <span class="text-slate-700 font-medium text-lg group-hover:text-pink-700 transition">${optTexto}</span>
+                </label>
+            `;
         });
     }
 }
 
 window.comprobarRespuestaTest = function(saltada = false) {
-    const p = runnerEstado.preguntas[runnerEstado.actual]; let esCorrecta = false; let haRespondido = true;
+    const p = runnerEstado.preguntas[runnerEstado.actual];
+    let esCorrecta = false; let haRespondido = true;
+
     if (!saltada) {
         if (p.tipo === 'fill') {
-            const userText = document.getElementById('resp-fill').value.trim().toLowerCase(); const correctText = p.respuestas[0].trim().toLowerCase();
+            const userText = document.getElementById('resp-fill').value.trim().toLowerCase();
+            const correctText = p.respuestas[0].trim().toLowerCase();
             if (userText === '') haRespondido = false; else esCorrecta = (userText === correctText);
             document.getElementById('resp-fill').disabled = true;
         } else if (p.tipo === 'multi') {
             const checks = Array.from(document.querySelectorAll('input[name="runner-opt"]:checked')).map(c => parseInt(c.value));
             if (checks.length === 0) haRespondido = false;
-            else { const respuestasCorrectasSort = [...p.respuestas].sort(); const checksSort = checks.sort(); esCorrecta = (respuestasCorrectasSort.length === checksSort.length && respuestasCorrectasSort.every((val, index) => val === checksSort[index])); }
+            else {
+                const respuestasCorrectasSort = [...p.respuestas].sort(); const checksSort = checks.sort();
+                esCorrecta = (respuestasCorrectasSort.length === checksSort.length && respuestasCorrectasSort.every((val, index) => val === checksSort[index]));
+            }
         } else {
             const check = document.querySelector('input[name="runner-opt"]:checked');
             if (!check) haRespondido = false; else esCorrecta = (parseInt(check.value) === p.respuestas[0]);
@@ -796,7 +915,11 @@ window.comprobarRespuestaTest = function(saltada = false) {
 
     document.getElementById('btn-comprobar').classList.add('hidden'); document.getElementById('btn-saltar').classList.add('hidden');
     const btnSiguiente = document.getElementById('btn-siguiente'); btnSiguiente.classList.remove('hidden');
-    if (runnerEstado.actual === runnerEstado.preguntas.length - 1) { btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>'; btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse"; }
+
+    if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
+        btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
+        btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse";
+    }
 }
 
 window.siguientePreguntaTest = function() {
@@ -817,8 +940,11 @@ function finalizarTest() {
     document.getElementById('resultados-titulo').textContent = nota10.toFixed(2); document.getElementById('resultados-subtitulo').textContent = nivelText;
 
     const header = document.getElementById('resultados-header'); const icon = document.getElementById('resultados-icon');
-    if (esAprobado) { header.className = "p-10 text-white bg-gradient-to-br from-green-400 to-emerald-600"; icon.innerHTML = '<i class="fa-solid fa-trophy animate-bounce"></i>'; lanzarConfeti(100); }
-    else { header.className = "p-10 text-white bg-gradient-to-br from-red-500 to-rose-700"; icon.innerHTML = '<i class="fa-solid fa-skull-crossbones"></i>'; }
+    if (esAprobado) {
+        header.className = "p-10 text-white bg-gradient-to-br from-green-400 to-emerald-600"; icon.innerHTML = '<i class="fa-solid fa-trophy animate-bounce"></i>'; lanzarConfeti(100);
+    } else {
+        header.className = "p-10 text-white bg-gradient-to-br from-red-500 to-rose-700"; icon.innerHTML = '<i class="fa-solid fa-skull-crossbones"></i>';
+    }
 
     const modal = document.getElementById('modal-resultados'); modal.classList.remove('hidden');
     setTimeout(() => { document.getElementById('resultados-card').classList.remove('scale-90'); document.getElementById('resultados-card').classList.add('scale-100'); }, 50);
@@ -834,9 +960,12 @@ function lanzarConfeti(cantidad = 30) {
     container.innerHTML = ''; container.style.opacity = '1';
     const colors = ['#fce7f3', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#db2777'];
     for (let i = 0; i < cantidad; i++) {
-        const conf = document.createElement('div'); conf.className = 'absolute w-3 h-3 rounded-sm opacity-80'; conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; conf.style.left = Math.random() * 100 + '%'; conf.style.top = '-10%';
-        const dur = Math.random() * 2 + 1; const delay = Math.random() * 0.5; conf.style.transition = `all ${dur}s cubic-bezier(.37,0,.63,1) ${delay}s`;
-        container.appendChild(conf); conf.getBoundingClientRect(); conf.style.top = '110%'; conf.style.transform = `rotate(${Math.random() * 720}deg) translateX(${Math.random() * 100 - 50}px)`;
+        const conf = document.createElement('div'); conf.className = 'absolute w-3 h-3 rounded-sm opacity-80'; conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.left = Math.random() * 100 + '%'; conf.style.top = '-10%';
+        const dur = Math.random() * 2 + 1; const delay = Math.random() * 0.5;
+        conf.style.transition = `all ${dur}s cubic-bezier(.37,0,.63,1) ${delay}s`;
+        container.appendChild(conf); conf.getBoundingClientRect(); // Trigger reflow
+        conf.style.top = '110%'; conf.style.transform = `rotate(${Math.random() * 720}deg) translateX(${Math.random() * 100 - 50}px)`;
     }
     setTimeout(() => { container.style.opacity = '0'; }, 2000);
 }
