@@ -973,20 +973,20 @@ window.iniciarTest = function(idTest) {
     const testInfo = appData.tests.find(t => t.id === idTest);
     if(!testInfo || testInfo.preguntas.length === 0) return;
 
-    runnerEstado = { test: testInfo, preguntas: mezclarArray(testInfo.preguntas), actual: 0, aciertos: 0, fallos: 0, blancos: 0 };
+    runnerEstado = { test: testInfo, preguntas: [...testInfo.preguntas].sort(()=>Math.random()-0.5), actual: 0, aciertos: 0, fallos: 0, blancos: 0 };
     document.getElementById('runner-titulo').textContent = testInfo.titulo;
     document.getElementById('runner-tema').textContent = `${testInfo.asignatura} • ${testInfo.tema}`;
 
     cambiarSeccion('test-runner');
     pintarPreguntaActual();
-}
+};
 
 window.cerrarTestEnEjecucion = function() {
     if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) {
         cambiarSeccion('tests-manager');
         runnerEstado = null;
     }
-}
+};
 
 function pintarPreguntaActual() {
     const p = runnerEstado.preguntas[runnerEstado.actual];
@@ -1000,16 +1000,8 @@ function pintarPreguntaActual() {
     document.getElementById('btn-saltar').classList.remove('hidden');
     document.getElementById('btn-siguiente').classList.add('hidden');
 
-    let enunHtml = p.enunciado;
-    if (p.tipo === 'fill') {
-        enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
-        document.getElementById('runner-enunciado').innerHTML = enunHtml;
-        setTimeout(()=> { const i = document.getElementById('resp-fill'); if(i) i.focus(); }, 100);
-    } else {
-        document.getElementById('runner-enunciado').textContent = enunHtml;
-    }
-    
-    // Renderizar multimedia (Imagen y Código) de forma segura
+    document.getElementById('runner-enunciado').textContent = p.enunciado;
+
     const multimediaBox = document.getElementById('runner-multimedia');
     if (multimediaBox) {
         multimediaBox.innerHTML = '';
@@ -1102,15 +1094,11 @@ window.comprobarRespuestaTest = function(saltada = false) {
         iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>';
         titFeed.textContent = "¡Correcto! (+1)";
         titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop";
-        lanzarConfeti();
     } else {
         runnerEstado.fallos++;
         iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
         titFeed.textContent = "Incorrecto (-0.5)";
         titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop";
-        const tarjeta = document.getElementById('runner-tarjeta');
-        tarjeta.classList.add('translate-x-2', 'border-red-500', 'border-2');
-        setTimeout(() => tarjeta.classList.remove('translate-x-2', 'border-red-500', 'border-2'), 300);
     }
 
     document.getElementById('btn-comprobar').classList.add('hidden');
@@ -1120,14 +1108,18 @@ window.comprobarRespuestaTest = function(saltada = false) {
 
     if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
         btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
-        btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse";
+        btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse cursor-pointer";
     }
-}
+};
 
 window.siguientePreguntaTest = function() {
     runnerEstado.actual++;
-    if (runnerEstado.actual < runnerEstado.preguntas.length) { pintarPreguntaActual(); } else { finalizarTest(); }
-}
+    if (runnerEstado.actual < runnerEstado.preguntas.length) {
+        pintarPreguntaActual();
+    } else {
+        finalizarTest();
+    }
+};
 
 function finalizarTest() {
     const total = runnerEstado.preguntas.length;
