@@ -775,16 +775,15 @@ window.abrirEditorTest = function(id = null) {
     document.getElementById('edit-test-tema').value = testEnEdicion.tema;
     document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
     renderizarPreguntasEditor();
-    document.getElementById('modal-editor-test').classList.remove('hidden');
-    
-    // Mostarmos el modal
+
+    // Mostramos el modal
     const MODAL = document.getElementById('modal-editor-test');
     MODAL.classList.remove('hidden');
-    
-    // LLevmos el foco
+
+    // Llevamos el foco al primer campo automáticamente
     setTimeout(() => {
-       const PRIMERCAMPO = document.getElementById('edit-test-asig');
-       if (PRIMERCAMPO) PRIMERCAMPO.focus(); 
+        const PRIMERCAMPO = document.getElementById('edit-test-asig');
+        if (PRIMERCAMPO) PRIMERCAMPO.focus();
     }, 50);
 }
 
@@ -957,7 +956,10 @@ let runnerEstado = null;
 
 function mezclarArray(array) {
     let arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
     return arr;
 }
 
@@ -977,20 +979,38 @@ window.cerrarTestEnEjecucion = function() {
 }
 
 function pintarPreguntaActual() {
-    const p = runnerEstado.preguntas[runnerEstado.actual]; const total = runnerEstado.preguntas.length;
+    const p = runnerEstado.preguntas[runnerEstado.actual];
+    const total = runnerEstado.preguntas.length;
 
     document.getElementById('runner-progreso-texto').textContent = `${runnerEstado.actual + 1}/${total}`;
     document.getElementById('runner-progreso-barra').style.width = `${((runnerEstado.actual) / total) * 100}%`;
 
-    document.getElementById('runner-feedback').classList.add('hidden'); document.getElementById('btn-comprobar').classList.remove('hidden'); document.getElementById('btn-saltar').classList.remove('hidden'); document.getElementById('btn-siguiente').classList.add('hidden');
+    document.getElementById('runner-feedback').classList.add('hidden');
+    document.getElementById('btn-comprobar').classList.remove('hidden');
+    document.getElementById('btn-saltar').classList.remove('hidden');
+    document.getElementById('btn-siguiente').classList.add('hidden');
 
-    const uiOpciones = document.getElementById('runner-opciones'); uiOpciones.innerHTML = '';
     let enunHtml = p.enunciado;
     if (p.tipo === 'fill') {
         enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
         document.getElementById('runner-enunciado').innerHTML = enunHtml;
         setTimeout(()=> { const i = document.getElementById('resp-fill'); if(i) i.focus(); }, 100);
-    } else { document.getElementById('runner-enunciado').textContent = enunHtml; }
+    } else {
+        document.getElementById('runner-enunciado').textContent = enunHtml;
+    }
+
+    // Renderizar multimedia (Imagen y Código)
+    const multimediaBox = document.getElementById('runner-multimedia');
+    multimediaBox.innerHTML = '';
+    if(p.imagen) {
+        multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
+    }
+    if(p.codigo) {
+        multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
+    }
+
+    const uiOpciones = document.getElementById('runner-opciones');
+    uiOpciones.innerHTML = '';
 
     if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
         let inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
@@ -1002,36 +1022,18 @@ function pintarPreguntaActual() {
                 </label>
             `;
         });
+    } else if (p.tipo === 'fill') {
+        uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none">`;
+    } else if (p.tipo === 'select') {
+        p.opciones.forEach((par) => {
+            const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
+            uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp bg-white" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
+        });
+    } else if (p.tipo === 'drag') {
+        uiOpciones.innerHTML = `<p class="text-xs font-bold text-slate-500">Arrastra las etiquetas a sus huecos:</p>
+        <div class="flex flex-wrap gap-2 mb-4" id="drag-chips">${p.opciones.map(o => `<div draggable="true" ondragstart="event.dataTransfer.setData('text', '${o.b}')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg font-bold text-xs drag-chip shadow-sm">${o.b}</div>`).join('')}</div>
+        <div class="space-y-2" id="drop-zones">${p.opciones.map((par) => `<div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl"><span class="text-sm">${par.a}</span><div class="drop-zone w-48 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 bg-white border border-dashed border-slate-300" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault(); this.classList.remove('drag-over'); this.textContent = event.dataTransfer.getData('text'); this.dataset.val = event.dataTransfer.getData('text'); this.classList.remove('text-slate-400');" data-correct="${par.b}">Arrastra aquí</div></div>`).join('')}</div>`;
     }
-}
-
-// Renderizar multimedia (Imagen y Código)
-const multimediaBox = document.getElementById('runner-multimedia');
-multimediaBox.innerHTML = '';
-if(p.imagen) {
-    multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
-}
-if(p.codigo) {
-    multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
-}
-
-const uiOpciones = document.getElementById('runner-opciones');
-uiOpciones.innerHTML = '';
-
-if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
-    const inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
-    p.opciones.forEach((opt, idx) => {
-        uiOpciones.innerHTML += `<label class="flex items-center gap-3 p-3 bg-slate-50 border rounded-xl cursor-pointer hover:bg-slate-100 transition"><input type="${inputType}" name="runner-opt" value="${idx}" class="w-4 h-4 text-pink-500"><span class="text-sm font-medium">${opt}</span></label>`;
-    });
-} else if (p.tipo === 'fill') {
-    uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none">`;
-} else if (p.tipo === 'select') {
-    p.opciones.forEach((par, idx) => {
-        const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
-        uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
-    });
-} else if (p.tipo === 'drag') {
-    uiOpciones.innerHTML = `<p class="text-xs font-bold text-slate-500">Arrastra las etiquetas a sus huecos:</p><div class="flex flex-wrap gap-2 mb-4" id="drag-chips">${p.opciones.map(o => `<div draggable="true" ondragstart="event.dataTransfer.setData('text', '${o.b}')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg font-bold text-xs drag-chip shadow-sm">${o.b}</div>`).join('')}</div><div class="space-y-2" id="drop-zones">${p.opciones.map((par, i) => `<div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl"><span class="text-sm">${par.a}</span><div class="drop-zone w-48 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 bg-white" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault(); this.classList.remove('drag-over'); this.textContent = event.dataTransfer.getData('text'); this.dataset.val = event.dataTransfer.getData('text');" data-correct="${par.b}">Arrastra aquí</div></div>`).join('')}</div>`;
 }
 
 window.comprobarRespuestaTest = function(saltada = false) {
@@ -1040,51 +1042,69 @@ window.comprobarRespuestaTest = function(saltada = false) {
 
     if (!saltada) {
         if (p.tipo === 'fill') {
-            const userText = document.getElementById('resp-fill').value.trim().toLowerCase();
+            const inputFill = document.getElementById('resp-fill');
+            const userText = inputFill ? inputFill.value.trim().toLowerCase() : '';
             const correctText = p.respuestas[0].trim().toLowerCase();
             if (userText === '') haRespondido = false; else esCorrecta = (userText === correctText);
-            document.getElementById('resp-fill').disabled = true;
+            if (inputFill) inputFill.disabled = true;
         } else if (p.tipo === 'multi') {
             const checks = Array.from(document.querySelectorAll('input[name="runner-opt"]:checked')).map(c => parseInt(c.value));
-            if(checks.length === 0) respondido = false;
+            if(checks.length === 0) haRespondido = false;
             else {
                 const cor = [...p.respuestas].sort(), chk = checks.sort();
                 esCorrecta = (cor.length === chk.length && cor.every((v, i) => v === chk[i]));
             }
         } else if (p.tipo === 'single' || p.tipo === 'vf') {
             const chk = document.querySelector('input[name="runner-opt"]:checked');
-            if(!chk) respondido = false; else esCorrecta = (parseInt(chk.value) === p.respuestas[0]);
+            if(!chk) haRespondido = false; else esCorrecta = (parseInt(chk.value) === p.respuestas[0]);
         } else if (p.tipo === 'select') {
             const selects = document.querySelectorAll('.select-resp');
             let aciertosPar = 0;
-            selects.forEach(s => { if(s.value === s.dataset.correct) aciertosPar++; });
+            selects.forEach(s => { if(s.value && s.value === s.dataset.correct) aciertosPar++; });
             esCorrecta = (aciertosPar === selects.length);
         } else if (p.tipo === 'drag') {
             const zones = document.querySelectorAll('.drop-zone');
             let aciertosDrag = 0;
-            zones.forEach(z => { if(z.dataset.val === z.dataset.correct) aciertosDrag++; });
+            zones.forEach(z => { if(z.dataset.val && z.dataset.val === z.dataset.correct) aciertosDrag++; });
             esCorrecta = (aciertosDrag === zones.length);
         }
     }
 
     if (!saltada && !haRespondido) { return alert("Selecciona o escribe una respuesta, o pulsa Saltar."); }
 
-    document.querySelectorAll('input[name="runner-opt"]').forEach(i => i.disabled = true);
+    document.querySelectorAll('input, select').forEach(i => i.disabled = true);
 
-    const divFeed = document.getElementById('runner-feedback'); const iconFeed = document.getElementById('runner-feedback-icon'); const titFeed = document.getElementById('runner-feedback-title');
-    divFeed.classList.remove('hidden'); document.getElementById('runner-feedback-exp').innerHTML = `<i class="fa-solid fa-graduation-cap text-slate-400 mr-2"></i><b>Explicación:</b> ${p.explicacion}`;
+    const divFeed = document.getElementById('runner-feedback');
+    const iconFeed = document.getElementById('runner-feedback-icon');
+    const titFeed = document.getElementById('runner-feedback-title');
+    divFeed.classList.remove('hidden');
+    document.getElementById('runner-feedback-exp').innerHTML = `<i class="fa-solid fa-graduation-cap text-slate-400 mr-2"></i><b>Explicación:</b> ${p.explicacion}`;
 
     if (saltada) {
-        runnerEstado.blancos++; iconFeed.innerHTML = '<i class="fa-solid fa-forward text-slate-400"></i>'; titFeed.textContent = "Saltada (+0)"; titFeed.className = "font-black text-xl mb-1 text-slate-500";
+        runnerEstado.blancos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-forward text-slate-400"></i>';
+        titFeed.textContent = "Saltada (+0)";
+        titFeed.className = "font-black text-xl mb-1 text-slate-500";
     } else if (esCorrecta) {
-        runnerEstado.aciertos++; iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>'; titFeed.textContent = "¡Correcto! (+1)"; titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop"; lanzarConfeti();
+        runnerEstado.aciertos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>';
+        titFeed.textContent = "¡Correcto! (+1)";
+        titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop";
+        lanzarConfeti();
     } else {
-        runnerEstado.fallos++; iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>'; titFeed.textContent = "Incorrecto (-0.5)"; titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop";
-        const tarjeta = document.getElementById('runner-tarjeta'); tarjeta.classList.add('translate-x-2', 'border-red-500', 'border-2'); setTimeout(() => tarjeta.classList.remove('translate-x-2', 'border-red-500', 'border-2'), 300);
+        runnerEstado.fallos++;
+        iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+        titFeed.textContent = "Incorrecto (-0.5)";
+        titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop";
+        const tarjeta = document.getElementById('runner-tarjeta');
+        tarjeta.classList.add('translate-x-2', 'border-red-500', 'border-2');
+        setTimeout(() => tarjeta.classList.remove('translate-x-2', 'border-red-500', 'border-2'), 300);
     }
 
-    document.getElementById('btn-comprobar').classList.add('hidden'); document.getElementById('btn-saltar').classList.add('hidden');
-    const btnSiguiente = document.getElementById('btn-siguiente'); btnSiguiente.classList.remove('hidden');
+    document.getElementById('btn-comprobar').classList.add('hidden');
+    document.getElementById('btn-saltar').classList.add('hidden');
+    const btnSiguiente = document.getElementById('btn-siguiente');
+    btnSiguiente.classList.remove('hidden');
 
     if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
         btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
@@ -1106,13 +1126,14 @@ function finalizarTest() {
     let nivelText = ""; let esAprobado = nota10 >= 5.0;
     if (nota10 < 5) nivelText = "Insuficiente"; else if (nota10 < 7) nivelText = "Suficiente"; else if (nota10 < 9) nivelText = "Notable"; else nivelText = "Sobresaliente";
 
-    document.getElementById('res-aciertos').textContent = runnerEstado.aciertos; 
-    document.getElementById('res-fallos').textContent = runnerEstado.fallos; 
+    document.getElementById('res-aciertos').textContent = runnerEstado.aciertos;
+    document.getElementById('res-fallos').textContent = runnerEstado.fallos;
     document.getElementById('res-blancos').textContent = runnerEstado.blancos;
-    document.getElementById('resultados-titulo').textContent = nota10.toFixed(2); 
+    document.getElementById('resultados-titulo').textContent = nota10.toFixed(2);
     document.getElementById('resultados-subtitulo').textContent = nivelText;
 
-    const header = document.getElementById('resultados-header'); const icon = document.getElementById('resultados-icon');
+    const header = document.getElementById('resultados-header');
+    const icon = document.getElementById('resultados-icon');
     if (esAprobado) {
         header.className = "p-10 text-white bg-gradient-to-br from-green-400 to-emerald-600"; icon.innerHTML = '<i class="fa-solid fa-trophy animate-bounce"></i>'; lanzarConfeti(100);
     } else {
