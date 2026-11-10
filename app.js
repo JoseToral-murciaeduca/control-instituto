@@ -812,6 +812,25 @@ window.abrirEditorTest = function(id = null) {
     });
 };
 
+window.abrirModalPregunta = function(index = null) {
+    const modalPregunta = document.getElementById('form-pregunta-box'); // o el ID de tu modal/formulario
+    if (!modalPregunta) return;
+
+    // 1. Mostramos el modal quitando la clase hidden
+    modalPregunta.classList.remove('hidden');
+
+    // 2. Damos un pequeño respiro al navegador para que renderice y luego aplicamos el foco
+    setTimeout(() => {
+        const primerInput = document.getElementById('edit-preg-enunciado') || document.getElementById('edit-preg-tipo');
+        if (primerInput) {
+            primerInput.focus();
+            if (typeof primerInput.select === 'function' && primerInput.tagName === 'INPUT') {
+                primerInput.select(); // Opcional: selecciona el texto si lo hubiera
+            }
+        }
+    }, 150);
+};
+
 window.cerrarEditorTest = function() {
     document.getElementById('modal-editor-test').classList.add('hidden');
     testEnEdicion = null;
