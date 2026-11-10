@@ -894,29 +894,52 @@ window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
     }
 
     if (tipo === 'vf') {
-        let corr = (p.respuestas && p.respuestas[0] === 0) ? 'checked' : '';
-        let corrF = (p.respuestas && p.respuestas[0] === 1) ? 'checked' : '';
-        box.innerHTML = `<label class="flex gap-2 items-center cursor-pointer mb-2"><input type="radio" name="vf-opt" value="0" ${corr}> Verdadero</label>
-                         <label class="flex gap-2 items-center cursor-pointer"><input type="radio" name="vf-opt" value="1" ${corrF}> Falso</label>`;
+        let corr0 = (p.respuestas && p.respuestas[0] === 0) ? 'checked' : '';
+        let corr1 = (p.respuestas && p.respuestas[0] === 1) ? 'checked' : '';
+        box.innerHTML = `
+            <label class="flex gap-2 items-center cursor-pointer mb-2">
+                <input type="radio" name="vf-opt" value="0" ${corr0}> Verdadero
+            </label>
+            <label class="flex gap-2 items-center cursor-pointer">
+                <input type="radio" name="vf-opt" value="1" ${corr1}> Falso
+            </label>`;
     } else if (tipo === 'fill') {
-        box.innerHTML = `<label class="text-xs font-bold block mb-1">Respuesta correcta:</label><input type="text" id="fill-correcta" value="${p.respuestas[0] || ''}" class="w-full p-2 border rounded bg-white">`;
+        box.innerHTML = `
+            <label class="text-xs font-bold block mb-1">Respuesta correcta (texto exacto):</label>
+            <input type="text" id="fill-correcta" value="${p.respuestas[0] || ''}" class="w-full p-2 border rounded bg-white" placeholder="Ej: public">`;
     } else if (tipo === 'select' || tipo === 'drag') {
-        box.innerHTML = `<p class="text-xs font-bold mb-2">Define parejas de elementos:</p><div id="pares-container" class="space-y-2"></div><button type="button" onclick="agregarParEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Pareja</button>`;
+        box.innerHTML = `
+            <p class="text-xs font-bold mb-2">Define parejas de elementos:</p>
+            <div id="pares-container" class="space-y-2"></div>
+            <button type="button" onclick="agregarParEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded cursor-pointer">+ Añadir Pareja</button>`;
+
         const container = document.getElementById('pares-container');
         const pares = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'object') ? p.opciones : [{a: '', b: ''}];
         pares.forEach((par) => {
             if (container) {
-                container.innerHTML += `<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par.a || ''}" class="p-1.5 border rounded text-xs flex-1 par-a bg-white"><input type="text" placeholder="Respuesta / Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b bg-white"></div>`;
+                container.innerHTML += `
+                    <div class="flex gap-2 items-center">
+                        <input type="text" placeholder="Concepto/Texto" value="${par.a || ''}" class="p-1.5 border rounded text-xs flex-1 par-a bg-white">
+                        <input type="text" placeholder="Respuesta / Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b bg-white">
+                    </div>`;
             }
         });
     } else {
-        box.innerHTML = `<p class="text-xs font-bold mb-2">Opciones (hasta 8):</p><div id="opciones-dinamicas" class="space-y-2"></div><button type="button" onclick="agregarOpcionEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Opción</button>`;
+        box.innerHTML = `
+            <p class="text-xs font-bold mb-2">Opciones de respuesta:</p>
+            <div id="opciones-dinamicas" class="space-y-2"></div>
+            <button type="button" onclick="agregarOpcionEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded cursor-pointer">+ Añadir Opción</button>`;
+
         const container = document.getElementById('opciones-dinamicas');
         const opts = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'string') ? p.opciones : ['', '', '', ''];
         opts.forEach((optText, i) => {
             const checked = p.respuestas && p.respuestas.includes(i) ? 'checked' : '';
             if (container) {
-                container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4"><input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text bg-white"></div>`;
+                container.innerHTML += `
+                    <div class="flex items-center gap-2 opt-row">
+                        <input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4 text-pink-500">
+                        <input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text bg-white">
+                    </div>`;
             }
         });
     }
