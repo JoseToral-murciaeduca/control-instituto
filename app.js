@@ -129,16 +129,19 @@ window.guardarConfigHorario = function() {
 // ==========================================
 // NAVEGACIÓN Y RESPONSIVE
 // ==========================================
-function cambiarSeccion(idSeccion) {
-    document.querySelectorAll('.seccion-app').forEach(sec => sec.classList.add('hidden'));
-    document.getElementById(idSeccion).classList.remove('hidden');
+window.cambiarSeccion = function(idSeccion) {
+    // Oculta todas las secciones con la clase .seccion-app
+    document.querySelectorAll('.seccion-app').forEach(sec => {
+        sec.classList.add('hidden');
+    });
 
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
-        toggleSidebar();
+    // Muestra únicamente la seleccionada
+    const seccionActiva = document.getElementById(idSeccion);
+    if (seccionActiva) {
+        seccionActiva.classList.remove('hidden');
+        window.scrollTo(0, 0); // Vuelve arriba del todo
     }
-}
+};
 
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
@@ -844,8 +847,13 @@ window.borrarPreguntaDeTest = function(idx) {
 }
 
 window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
-    const tipo = document.getElementById('edit-preg-tipo').value;
+    const tipoSelect = document.getElementById('edit-preg-tipo');
+    if (!tipoSelect) return;
+
+    const tipo = tipoSelect.value;
     const box = document.getElementById('edit-preg-opciones-box');
+    if (!box) return;
+
     box.innerHTML = '';
 
     let p = pregGuardada ? JSON.parse(JSON.stringify(pregGuardada)) : null;
@@ -862,17 +870,20 @@ window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
     }
 
     if (tipo === 'vf') {
-        let corr = p.respuestas[0] === 0 ? 'checked' : '';
-        let corrF = p.respuestas[0] === 1 ? 'checked' : '';
-        box.innerHTML = `<label class="flex gap-2"><input type="radio" name="vf-opt" value="0" ${corr}> Verdadero</label><label class="flex gap-2"><input type="radio" name="vf-opt" value="1" ${corrF}> Falso</label>`;
+        let corr = (p.respuestas && p.respuestas[0] === 0) ? 'checked' : '';
+        let corrF = (p.respuestas && p.respuestas[0] === 1) ? 'checked' : '';
+        box.innerHTML = `<label class="flex gap-2 items-center cursor-pointer mb-2"><input type="radio" name="vf-opt" value="0" ${corr}> Verdadero</label>
+                         <label class="flex gap-2 items-center cursor-pointer"><input type="radio" name="vf-opt" value="1" ${corrF}> Falso</label>`;
     } else if (tipo === 'fill') {
-        box.innerHTML = `<label class="text-xs font-bold">Respuesta correcta:</label><input type="text" id="fill-correcta" value="${p.respuestas[0] || ''}" class="w-full p-2 border rounded bg-white mt-1">`;
+        box.innerHTML = `<label class="text-xs font-bold block mb-1">Respuesta correcta:</label><input type="text" id="fill-correcta" value="${p.respuestas[0] || ''}" class="w-full p-2 border rounded bg-white">`;
     } else if (tipo === 'select' || tipo === 'drag') {
-        box.innerHTML = `<p class="text-xs font-bold mb-2">Define parejas de elementos (Texto / Hueco o Etiqueta y Destino):</p><div id="pares-container" class="space-y-2"></div><button type="button" onclick="agregarParEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Pareja</button>`;
+        box.innerHTML = `<p class="text-xs font-bold mb-2">Define parejas de elementos:</p><div id="pares-container" class="space-y-2"></div><button type="button" onclick="agregarParEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Pareja</button>`;
         const container = document.getElementById('pares-container');
         const pares = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'object') ? p.opciones : [{a: '', b: ''}];
         pares.forEach((par) => {
-            container.innerHTML += `<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par.a || ''}" class="p-1.5 border rounded text-xs flex-1 par-a"><input type="text" placeholder="Respuesta / Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b"></div>`;
+            if (container) {
+                container.innerHTML += `<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par.a || ''}" class="p-1.5 border rounded text-xs flex-1 par-a bg-white"><input type="text" placeholder="Respuesta / Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b bg-white"></div>`;
+            }
         });
     } else {
         box.innerHTML = `<p class="text-xs font-bold mb-2">Opciones (hasta 8):</p><div id="opciones-dinamicas" class="space-y-2"></div><button type="button" onclick="agregarOpcionEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Opción</button>`;
@@ -880,10 +891,12 @@ window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
         const opts = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'string') ? p.opciones : ['', '', '', ''];
         opts.forEach((optText, i) => {
             const checked = p.respuestas && p.respuestas.includes(i) ? 'checked' : '';
-            container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4"><input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text"></div>`;
+            if (container) {
+                container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4"><input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text bg-white"></div>`;
+            }
         });
     }
-}
+};
 
 window.agregarOpcionEditor = function() {
     const container = document.getElementById('opciones-dinamicas');
