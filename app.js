@@ -989,66 +989,91 @@ window.cerrarTestEnEjecucion = function() {
 };
 
 function pintarPreguntaActual() {
+    if (!runnerEstado || !runnerEstado.preguntas[runnerEstado.actual]) return;
+
     const p = runnerEstado.preguntas[runnerEstado.actual];
     const total = runnerEstado.preguntas.length;
 
-    document.getElementById('runner-progreso-texto').textContent = `${runnerEstado.actual + 1}/${total}`;
-    document.getElementById('runner-progreso-barra').style.width = `${((runnerEstado.actual) / total) * 100}%`;
+    // Elementos básicos con comprobación de existencia
+    const elTexto = document.getElementById('runner-progreso-texto');
+    const elBarra = document.getElementById('runner-progreso-barra');
+    const elFeedback = document.getElementById('runner-feedback');
+    const elBtnComprobar = document.getElementById('btn-comprobar');
+    const elBtnSaltar = document.getElementById('btn-saltar');
+    const elBtnSiguiente = document.getElementById('btn-siguiente');
+    const elEnunciado = document.getElementById('runner-enunciado');
 
-    document.getElementById('runner-feedback').classList.add('hidden');
-    document.getElementById('btn-comprobar').classList.remove('hidden');
-    document.getElementById('btn-saltar').classList.remove('hidden');
-    document.getElementById('btn-siguiente').classList.add('hidden');
+    if (elTexto) elTexto.textContent = `${runnerEstado.actual + 1}/${total}`;
+    if (elBarra) elBarra.style.width = `${((runnerEstado.actual) / total) * 100}%`;
+    if (elFeedback) elFeedback.classList.add('hidden');
+    if (elBtnComprobar) elBtnComprobar.classList.remove('hidden');
+    if (elBtnSaltar) elBtnSaltar.classList.remove('hidden');
+    if (elBtnSiguiente) elBtnSiguiente.classList.add('hidden');
 
-    document.getElementById('runner-enunciado').textContent = p.enunciado;
-
-    const multimediaBox = document.getElementById('runner-multimedia');
-    if (multimediaBox) {
-        multimediaBox.innerHTML = '';
-        if(p.imagen) {
-            multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
-        }
-        if(p.codigo) {
-            multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
+    let enunHtml = p.enunciado;
+    if (elEnunciado) {
+        if (p.tipo === 'fill') {
+            enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
+            elEnunciado.innerHTML = enunHtml;
+            setTimeout(()=> { const i = document.getElementById('resp-fill'); if(i) i.focus(); }, 100);
+        } else {
+            elEnunciado.textContent = enunHtml;
         }
     }
 
-    const uiOpciones = document.getElementById('runner-opciones');
-    uiOpciones.innerHTML = '';
+    // MULTIMEDIA
+    const multimediaBox = document.getElementById('runner-multimedia');
+    if (multimediaBox) {
+        multimediaBox.innerHTML = '';
+        if (p.imagen) {
+            multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain mb-4">`;
+        }
+        if (p.codigo) {
+            multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner mb-4"><code>${p.codigo}</code></pre>`;
+        }
+    }
 
-    if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
-        let inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
-        p.opciones.forEach((optTexto, idx) => {
-            uiOpciones.innerHTML += `
-                <label class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-pink-300 transition group">
-                    <input type="${inputType}" name="runner-opt" value="${idx}" class="w-5 h-5 text-pink-500 focus:ring-pink-500 border-slate-300">
-                    <span class="text-slate-700 font-medium text-lg group-hover:text-pink-700 transition">${optTexto}</span>
-                </label>
-            `;
-        });
-    } else if (p.tipo === 'fill') {
-        uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none bg-white">`;
-    } else if (p.tipo === 'select') {
-        p.opciones.forEach((par) => {
-            const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
-            uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp bg-white" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
-        });
-    } else if (p.tipo === 'drag') {
-        uiOpciones.innerHTML = `<p class="text-xs font-bold text-slate-500">Arrastra las etiquetas a sus huecos:</p>
-        <div class="flex flex-wrap gap-2 mb-4" id="drag-chips">${p.opciones.map(o => `<div draggable="true" ondragstart="event.dataTransfer.setData('text', '${o.b}')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg font-bold text-xs drag-chip shadow-sm">${o.b}</div>`).join('')}</div>
-        <div class="space-y-2" id="drop-zones">${p.opciones.map((par) => `<div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl"><span class="text-sm">${par.a}</span><div class="drop-zone w-48 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 bg-white border border-dashed border-slate-300" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault(); this.classList.remove('drag-over'); this.textContent = event.dataTransfer.getData('text'); this.dataset.val = event.dataTransfer.getData('text'); this.classList.remove('text-slate-400');" data-correct="${par.b}">Arrastra aquí</div></div>`).join('')}</div>`;
+    // OPCIONES
+    const uiOpciones = document.getElementById('runner-opciones');
+    if (uiOpciones) {
+        uiOpciones.innerHTML = '';
+
+        if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
+            let inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
+            p.opciones.forEach((optTexto, idx) => {
+                uiOpciones.innerHTML += `
+                    <label class="flex items-center gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 hover:border-pink-300 transition group">
+                        <input type="${inputType}" name="runner-opt" value="${idx}" class="w-5 h-5 text-pink-500 focus:ring-pink-500 border-slate-300">
+                        <span class="text-slate-700 font-medium text-lg group-hover:text-pink-700 transition">${optTexto}</span>
+                    </label>
+                `;
+            });
+        } else if (p.tipo === 'fill') {
+            uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none bg-white">`;
+        } else if (p.tipo === 'select') {
+            p.opciones.forEach((par) => {
+                const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
+                uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp bg-white" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
+            });
+        } else if (p.tipo === 'drag') {
+            uiOpciones.innerHTML = `<p class="text-xs font-bold text-slate-500">Arrastra las etiquetas a sus huecos:</p>
+            <div class="flex flex-wrap gap-2 mb-4" id="drag-chips">${p.opciones.map(o => `<div draggable="true" ondragstart="event.dataTransfer.setData('text', '${o.b}')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg font-bold text-xs drag-chip shadow-sm cursor-grab">${o.b}</div>`).join('')}</div>
+            <div class="space-y-2" id="drop-zones">${p.opciones.map((par) => `<div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl"><span class="text-sm">${par.a}</span><div class="drop-zone w-48 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 bg-white border border-dashed border-slate-300" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault(); this.classList.remove('drag-over'); this.textContent = event.dataTransfer.getData('text'); this.dataset.val = event.dataTransfer.getData('text'); this.classList.remove('text-slate-400');" data-correct="${par.b}">Arrastra aquí</div></div>`).join('')}</div>`;
+        }
     }
 }
 
 window.comprobarRespuestaTest = function(saltada = false) {
+    if (!runnerEstado) return;
     const p = runnerEstado.preguntas[runnerEstado.actual];
-    let esCorrecta = false; let haRespondido = true;
+    let esCorrecta = false;
+    let haRespondido = true;
 
     if (!saltada) {
         if (p.tipo === 'fill') {
             const inputFill = document.getElementById('resp-fill');
             const userText = inputFill ? inputFill.value.trim().toLowerCase() : '';
-            const correctText = p.respuestas[0].trim().toLowerCase();
+            const correctText = (p.respuestas && p.respuestas[0]) ? p.respuestas[0].trim().toLowerCase() : '';
             if (userText === '') haRespondido = false; else esCorrecta = (userText === correctText);
             if (inputFill) inputFill.disabled = true;
         } else if (p.tipo === 'multi') {
@@ -1074,41 +1099,47 @@ window.comprobarRespuestaTest = function(saltada = false) {
         }
     }
 
-    if (!saltada && !haRespondido) { return alert("Selecciona o escribe una respuesta, o pulsa Saltar."); }
+    if (!saltada && !haRespondido) {
+        alert("Selecciona o escribe una respuesta, o pulsa Saltar.");
+        return;
+    }
 
     document.querySelectorAll('input, select').forEach(i => i.disabled = true);
 
     const divFeed = document.getElementById('runner-feedback');
     const iconFeed = document.getElementById('runner-feedback-icon');
     const titFeed = document.getElementById('runner-feedback-title');
-    divFeed.classList.remove('hidden');
-    document.getElementById('runner-feedback-exp').innerHTML = `<i class="fa-solid fa-graduation-cap text-slate-400 mr-2"></i><b>Explicación:</b> ${p.explicacion}`;
+    const expFeed = document.getElementById('runner-feedback-exp');
+
+    if (divFeed) divFeed.classList.remove('hidden');
+    if (expFeed) expFeed.innerHTML = `<i class="fa-solid fa-graduation-cap text-slate-400 mr-2"></i><b>Explicación:</b> ${p.explicacion || 'Sin explicación.'}`;
 
     if (saltada) {
         runnerEstado.blancos++;
-        iconFeed.innerHTML = '<i class="fa-solid fa-forward text-slate-400"></i>';
-        titFeed.textContent = "Saltada (+0)";
-        titFeed.className = "font-black text-xl mb-1 text-slate-500";
+        if (iconFeed) iconFeed.innerHTML = '<i class="fa-solid fa-forward text-slate-400"></i>';
+        if (titFeed) { titFeed.textContent = "Saltada (+0)"; titFeed.className = "font-black text-xl mb-1 text-slate-500"; }
     } else if (esCorrecta) {
         runnerEstado.aciertos++;
-        iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>';
-        titFeed.textContent = "¡Correcto! (+1)";
-        titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop";
+        if (iconFeed) iconFeed.innerHTML = '<i class="fa-solid fa-circle-check text-green-500 animate-bounce"></i>';
+        if (titFeed) { titFeed.textContent = "¡Correcto! (+1)"; titFeed.className = "font-black text-xl mb-1 text-green-600 animate-pop"; }
     } else {
         runnerEstado.fallos++;
-        iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
-        titFeed.textContent = "Incorrecto (-0.5)";
-        titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop";
+        if (iconFeed) iconFeed.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+        if (titFeed) { titFeed.textContent = "Incorrecto (-0.5)"; titFeed.className = "font-black text-xl mb-1 text-red-600 animate-pop"; }
     }
 
-    document.getElementById('btn-comprobar').classList.add('hidden');
-    document.getElementById('btn-saltar').classList.add('hidden');
-    const btnSiguiente = document.getElementById('btn-siguiente');
-    btnSiguiente.classList.remove('hidden');
+    const btnComp = document.getElementById('btn-comprobar');
+    const btnSalt = document.getElementById('btn-saltar');
+    const btnSig = document.getElementById('btn-siguiente');
 
-    if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
-        btnSiguiente.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
-        btnSiguiente.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse cursor-pointer";
+    if (btnComp) btnComp.classList.add('hidden');
+    if (btnSalt) btnSalt.classList.add('hidden');
+    if (btnSig) {
+        btnSig.classList.remove('hidden');
+        if (runnerEstado.actual === runnerEstado.preguntas.length - 1) {
+            btnSig.innerHTML = 'Ver Resultados <i class="fa-solid fa-flag-checkered ml-1"></i>';
+            btnSig.className = "bg-blue-600 text-white font-black px-8 py-3 rounded-xl hover:bg-blue-700 shadow-md transition transform active:scale-95 animate-pulse cursor-pointer";
+        }
     }
 };
 
