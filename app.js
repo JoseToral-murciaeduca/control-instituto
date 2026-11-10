@@ -776,11 +776,9 @@ window.abrirEditorTest = function(id = null) {
     document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
     renderizarPreguntasEditor();
 
-    // Mostramos el modal
     const MODAL = document.getElementById('modal-editor-test');
     MODAL.classList.remove('hidden');
 
-    // Llevamos el foco al primer campo automáticamente
     setTimeout(() => {
         const PRIMERCAMPO = document.getElementById('edit-test-asig');
         if (PRIMERCAMPO) PRIMERCAMPO.focus();
@@ -794,7 +792,8 @@ window.cerrarEditorTest = function() {
 
 window.borrarTest = function(id) {
     if(confirm("⚠️ ¿Seguro que quieres borrar este test por completo?")) {
-        appData.tests = appData.tests.filter(t => t.id !== id); guardarDatos();
+        appData.tests = appData.tests.filter(t => t.id !== id);
+        guardarDatos();
     }
 }
 
@@ -802,7 +801,8 @@ function renderizarPreguntasEditor() {
     const lista = document.getElementById('lista-preguntas-editor');
     lista.innerHTML = '';
     if(testEnEdicion.preguntas.length === 0) {
-        lista.innerHTML = '<p class="text-sm text-slate-400 italic text-center py-4">Aún no hay preguntas. Pulsa Añadir Pregunta.</p>'; return;
+        lista.innerHTML = '<p class="text-sm text-slate-400 italic text-center py-4">Aún no hay preguntas. Pulsa Añadir Pregunta.</p>';
+        return;
     }
 
     testEnEdicion.preguntas.forEach((p, idx) => {
@@ -912,10 +912,12 @@ window.guardarPreguntaEnTest = function() {
     let opciones = []; let respuestas = [];
 
     if (tipo === 'vf') {
-        opciones = ["Verdadero", "Falso"]; respuestas = [parseInt(document.querySelector('input[name="vf-opt"]:checked').value)];
+        opciones = ["Verdadero", "Falso"];
+        respuestas = [parseInt(document.querySelector('input[name="vf-opt"]:checked').value)];
     } else if (tipo === 'fill') {
         let val = document.getElementById('fill-correcta').value.trim();
-        if(!val) return alert("Falta la respuesta correcta"); respuestas = [val];
+        if(!val) return alert("Falta la respuesta correcta");
+        respuestas = [val];
     } else if (tipo === 'select' || tipo === 'drag') {
         document.querySelectorAll('#pares-container > div').forEach(row => {
             const a = row.querySelector('.par-a').value.trim();
@@ -934,7 +936,9 @@ window.guardarPreguntaEnTest = function() {
     }
 
     const nuevaPregunta = { tipo, enunciado, imagen, codigo, opciones, respuestas, explicacion };
-    if (idx === -1) testEnEdicion.preguntas.push(nuevaPregunta); else testEnEdicion.preguntas[idx] = nuevaPregunta;
+    if (idx === -1) testEnEdicion.preguntas.push(nuevaPregunta);
+    else testEnEdicion.preguntas[idx] = nuevaPregunta;
+
     document.getElementById('form-pregunta-box').classList.add('hidden');
     renderizarPreguntasEditor();
 }
@@ -946,9 +950,11 @@ window.guardarTestCompleto = function() {
 
     if(testEnEdicion.preguntas.length === 0) return alert("El test debe tener al menos una pregunta.");
     const index = appData.tests.findIndex(t => t.id === testEnEdicion.id);
-    if (index >= 0) appData.tests[index] = testEnEdicion; else appData.tests.push(testEnEdicion);
+    if (index >= 0) appData.tests[index] = testEnEdicion;
+    else appData.tests.push(testEnEdicion);
 
-    guardarDatos(); cerrarEditorTest();
+    guardarDatos();
+    cerrarEditorTest();
 }
 
 // --- EJECUCIÓN DEL TEST (RUNNER) ---
@@ -971,11 +977,15 @@ window.iniciarTest = function(idTest) {
     document.getElementById('runner-titulo').textContent = testInfo.titulo;
     document.getElementById('runner-tema').textContent = `${testInfo.asignatura} • ${testInfo.tema}`;
 
-    cambiarSeccion('test-runner'); pintarPreguntaActual();
+    cambiarSeccion('test-runner');
+    pintarPreguntaActual();
 }
 
 window.cerrarTestEnEjecucion = function() {
-    if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) { cambiarSeccion('tests-manager'); runnerEstado = null; }
+    if(confirm("¿Seguro que quieres salir? Se perderá el progreso.")) {
+        cambiarSeccion('tests-manager');
+        runnerEstado = null;
+    }
 }
 
 function pintarPreguntaActual() {
@@ -999,7 +1009,6 @@ function pintarPreguntaActual() {
         document.getElementById('runner-enunciado').textContent = enunHtml;
     }
 
-    // Renderizar multimedia (Imagen y Código)
     const multimediaBox = document.getElementById('runner-multimedia');
     multimediaBox.innerHTML = '';
     if(p.imagen) {
@@ -1023,7 +1032,7 @@ function pintarPreguntaActual() {
             `;
         });
     } else if (p.tipo === 'fill') {
-        uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none">`;
+        uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none bg-white">`;
     } else if (p.tipo === 'select') {
         p.opciones.forEach((par) => {
             const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
@@ -1158,7 +1167,7 @@ function lanzarConfeti(cantidad = 30) {
         conf.style.left = Math.random() * 100 + '%'; conf.style.top = '-10%';
         const dur = Math.random() * 2 + 1; const delay = Math.random() * 0.5;
         conf.style.transition = `all ${dur}s cubic-bezier(.37,0,.63,1) ${delay}s`;
-        container.appendChild(conf); conf.getBoundingClientRect(); // Trigger reflow
+        container.appendChild(conf); conf.getBoundingClientRect();
         conf.style.top = '110%'; conf.style.transform = `rotate(${Math.random() * 720}deg) translateX(${Math.random() * 100 - 50}px)`;
     }
     setTimeout(() => { container.style.opacity = '0'; }, 2000);
