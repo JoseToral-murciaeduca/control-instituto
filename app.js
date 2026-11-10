@@ -1002,6 +1002,8 @@ function pintarPreguntaActual() {
     const elBtnSaltar = document.getElementById('btn-saltar');
     const elBtnSiguiente = document.getElementById('btn-siguiente');
     const elEnunciado = document.getElementById('runner-enunciado');
+    const multimediaBox = document.getElementById('runner-multimedia');
+    const uiOpciones = document.getElementById('runner-opciones');
 
     if (elTexto) elTexto.textContent = `${runnerEstado.actual + 1}/${total}`;
     if (elBarra) elBarra.style.width = `${((runnerEstado.actual) / total) * 100}%`;
@@ -1010,19 +1012,18 @@ function pintarPreguntaActual() {
     if (elBtnSaltar) elBtnSaltar.classList.remove('hidden');
     if (elBtnSiguiente) elBtnSiguiente.classList.add('hidden');
 
-    let enunHtml = p.enunciado;
     if (elEnunciado) {
+        let enunHtml = p.enunciado;
         if (p.tipo === 'fill') {
             enunHtml = enunHtml.replace(/___/g, `<input type="text" id="resp-fill" class="border-b-2 border-pink-500 bg-pink-50 focus:bg-white text-center font-mono outline-none px-2 mx-1 w-32" autocomplete="off" autofocus>`);
             elEnunciado.innerHTML = enunHtml;
-            setTimeout(()=> { const i = document.getElementById('resp-fill'); if(i) i.focus(); }, 100);
+            setTimeout(() => { const i = document.getElementById('resp-fill'); if (i) i.focus(); }, 100);
         } else {
             elEnunciado.textContent = enunHtml;
         }
     }
 
-    // MULTIMEDIA
-    const multimediaBox = document.getElementById('runner-multimedia');
+    // MULTIMEDIA: Protegido contra null
     if (multimediaBox) {
         multimediaBox.innerHTML = '';
         if (p.imagen) {
@@ -1033,8 +1034,7 @@ function pintarPreguntaActual() {
         }
     }
 
-    // OPCIONES
-    const uiOpciones = document.getElementById('runner-opciones');
+    // OPCIONES: Protegido contra null
     if (uiOpciones) {
         uiOpciones.innerHTML = '';
 
@@ -1052,7 +1052,7 @@ function pintarPreguntaActual() {
             uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none bg-white">`;
         } else if (p.tipo === 'select') {
             p.opciones.forEach((par) => {
-                const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
+                const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(() => Math.random() - 0.5);
                 uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp bg-white" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
             });
         } else if (p.tipo === 'drag') {
