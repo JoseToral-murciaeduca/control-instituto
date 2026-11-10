@@ -469,13 +469,27 @@
                         <option value="single">Test (1 opción correcta)</option>
                         <option value="multi">Test (Varias correctas)</option>
                         <option value="fill">Rellenar hueco (Escribir)</option>
+                        <option value="select">Desplegable múltiples (Select)</option>
+                        <option value="drag">Arrastrar y colocar (Drag & Drop)</option>
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Imagen opcional (URL)</label>
+                    <input type="text" id="edit-preg-imagen" placeholder="https://ejemplo.com/img.png" class="w-full p-2 border border-slate-200 rounded bg-slate-50 text-sm">
+                </div>
+                
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Enunciado</label>
                     <textarea id="edit-preg-enunciado" rows="2" placeholder="Ej. Java es un lenguaje compilado..." class="w-full p-2 border border-slate-200 rounded bg-slate-50 resize-none"></textarea>
                 </div>
+                
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Bloque de Código opcional (Java, Python, SQL...)</label>
+                    <textarea id="edit-preg-codigo" rows="3" placeholder="public class Test { ... }" class="w-full p-2 border border-slate-200 rounded bg-slate-900 text-green-400 font-mono text-xs resize-none"></textarea>
+                </div>
+                
                 <div id="edit-preg-opciones-box" class="mb-4 bg-slate-50 p-3 rounded border border-slate-100"></div>
+                
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-slate-500 mb-1">Explicación (Feedback para el alumno)</label>
                     <textarea id="edit-preg-explicacion" rows="2" placeholder="Ej. Sí, porque usa el compilador javac para generar el bytecode." class="w-full p-2 border border-slate-200 rounded bg-slate-50 resize-none"></textarea>

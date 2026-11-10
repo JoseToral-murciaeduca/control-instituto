@@ -776,6 +776,16 @@ window.abrirEditorTest = function(id = null) {
     document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
     renderizarPreguntasEditor();
     document.getElementById('modal-editor-test').classList.remove('hidden');
+    
+    // Mostarmos el modal
+    const MODAL = document.getElementById('modal-editor-test');
+    MODAL.classList.remove('hidden');
+    
+    // LLevmos el foco
+    setTimeout(() => {
+       const PRIMERCAMPO = document.getElementById('edit-test-asig');
+       if (PRIMERCAMPO) PRIMERCAMPO.focus(); 
+    }, 50);
 }
 
 window.cerrarEditorTest = function() {
@@ -814,11 +824,15 @@ window.abrirFormularioPregunta = function(idx = -1) {
         const p = testEnEdicion.preguntas[idx];
         document.getElementById('edit-preg-tipo').value = p.tipo;
         document.getElementById('edit-preg-enunciado').value = p.enunciado;
+        document.getElementById('edit-preg-imagen').value = p.imagen || '';
+        document.getElementById('edit-preg-codigo').value = p.codigo || '';
         document.getElementById('edit-preg-explicacion').value = p.explicacion;
         cambiarTipoPreguntaEditor(p);
     } else {
         document.getElementById('edit-preg-tipo').value = 'single';
         document.getElementById('edit-preg-enunciado').value = '';
+        document.getElementById('edit-preg-imagen').value = '';
+        document.getElementById('edit-preg-codigo').value = '';
         document.getElementById('edit-preg-explicacion').value = '';
         cambiarTipoPreguntaEditor();
     }
@@ -849,21 +863,42 @@ window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
             <p class="text-xs font-bold text-slate-500 mb-2">Escribe la palabra o código correcto:</p>
             <input type="text" id="fill-correcta" value="${val}" placeholder="Ej. out" class="w-full p-2 border border-slate-300 rounded font-mono text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
             <p class="text-[10px] text-slate-400 mt-1 italic">* En el enunciado pon "___" donde quieres que el alumno escriba.</p>`;
+    } else if (tipo === 'select' || tipo === 'drag') {
+        box.innerHTML = document.getElementById('pares-container');
+        const container = document.getElementById('pares-container');
+        pares.forEach((par, i) => {
+           container.innerHTML += '<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par. || '`}" class="p-1.5 border rounded text-xs flex-1 par-a"><input type="text" placeholder="Respuesta/Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b"></div>`; 
+        });
     } else {
-        let typeInput = tipo === 'single' ? 'radio' : 'checkbox';
-        box.innerHTML = `<p class="text-xs font-bold text-slate-500 mb-2">Escribe las opciones y marca la/s correcta/s:</p>`;
-        for (let i = 0; i < 4; i++) {
-            let textoOpt = pregGuardada && pregGuardada.opciones[i] ? pregGuardada.opciones[i] : '';
-            let isChecked = pregGuardada && pregGuardada.respuestas.includes(i) ? 'checked' : (i===0 && tipo==='single' ? 'checked' : '');
-            box.innerHTML += `<div class="flex items-center gap-2 mb-2"><input type="${typeInput}" name="multi-opt" value="${i}" ${isChecked} class="w-4 h-4 text-pink-500 focus:ring-pink-500 cursor-pointer"><input type="text" id="opt-text-${i}" value="${textoOpt}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 text-sm border border-slate-200 rounded focus:border-pink-400 focus:outline-none"></div>`;
-        }
+        box.innerHTML = `<p class="text-xs font-bold mb-2">Opciones (hasta 8):</p><div id="opciones-dinamicas" class="space-y-2"></div><button type="button" onclick="agregarOpcionEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Opción</button>`;
+        const container = document.getElementById('opciones-dinamicas');
+        const opts = p.opciones.length ? p.opciones : ['', '', '', ''];
+        opts.forEach((optText, i) => {
+            const checked = p.respuestas.includes(i) ? 'checked' : '';
+            container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4"><input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text"></div>`;
+        });
     }
+}
+
+window.agregarOpcionEditor = function() {
+    const container = document.getElementById('opciones-dinamicas');
+    if(container.children.length >= 8) return alert("Máximo 8 opciones permitidas.");
+    const i = container.children.length;
+    const tipo = document.getElementById('edit-preg-tipo').value;
+    container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" class="w-4 h-4"><input type="text" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text"></div>`;
+}
+
+window.agregarParEditor = function() {
+    const container = document.getElementById('pares-container');
+    container.innerHTML += `<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" class="p-1.5 border rounded text-xs flex-1 par-a"><input type="text" placeholder="Respuesta / Hueco" class="p-1.5 border rounded text-xs flex-1 par-b"></div>`;
 }
 
 window.guardarPreguntaEnTest = function() {
     const idx = parseInt(document.getElementById('edit-preg-index').value);
     const tipo = document.getElementById('edit-preg-tipo').value;
     const enunciado = document.getElementById('edit-preg-enunciado').value.trim();
+    const imagen = document.getElementById('edit-preg-imagen').value.trim();
+    const codigo = document.getElementById('edit-preg-codigo').value.trim();
     const explicacion = document.getElementById('edit-preg-explicacion').value.trim();
 
     if(!enunciado) return alert("Falta el enunciado");
@@ -876,15 +911,24 @@ window.guardarPreguntaEnTest = function() {
     } else if (tipo === 'fill') {
         let val = document.getElementById('fill-correcta').value.trim();
         if(!val) return alert("Falta la respuesta correcta"); respuestas = [val];
+    } else if (tipo === 'select' || tipo === 'drag') {
+        document.querySelectorAll('#pares-container > div').forEach(row => {
+            const a = row.querySelector('.par-a').value.trim();
+            const b = row.querySelector('.par-b').value.trim();
+            if (a && b) opciones.push({a, b});
+        });
+        if (opciones.length === 0) return alert("Añade al menos una pareja válida.");
     } else {
-        for (let i = 0; i < 4; i++) { let txt = document.getElementById(`opt-text-${i}`).value.trim(); if(txt) opciones.push(txt); }
-        if(opciones.length < 2) return alert("Debes rellenar al menos 2 opciones.");
-        const checks = document.querySelectorAll('input[name="multi-opt"]:checked');
-        checks.forEach(c => { const indexValue = parseInt(c.value); if(indexValue < opciones.length) respuestas.push(indexValue); });
-        if(respuestas.length === 0) return alert("Debes marcar al menos una respuesta correcta.");
+        document.querySelectorAll('.opt-row').forEach((row, i) => {
+            const txt = row.querySelector('.opt-text').value.trim();
+            if(txt) opciones.push(txt);
+            if(row.querySelector('input').checked) respuestas.push(i);
+        });
+        if(opciones.length < 2) return alert("Mínimo 2 opciones.");
+        if(respuestas.length === 0) return alert("Marca al menos una respuesta correcta.");
     }
 
-    const nuevaPregunta = { tipo, enunciado, opciones, respuestas, explicacion };
+    const nuevaPregunta = { tipo, enunciado, imagen, codigo, opciones, respuestas, explicacion };
     if (idx === -1) testEnEdicion.preguntas.push(nuevaPregunta); else testEnEdicion.preguntas[idx] = nuevaPregunta;
     document.getElementById('form-pregunta-box').classList.add('hidden');
     renderizarPreguntasEditor();
@@ -955,6 +999,35 @@ function pintarPreguntaActual() {
     }
 }
 
+// Renderizar multimedia (Imagen y Código)
+const multimediaBox = document.getElementById('runner-multimedia');
+multimediaBox.innerHTML = '';
+if(p.imagen) {
+    multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
+}
+if(p.codigo) {
+    multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
+}
+
+const uiOpciones = document.getElementById('runner-opciones');
+uiOpciones.innerHTML = '';
+
+if (p.tipo === 'vf' || p.tipo === 'single' || p.tipo === 'multi') {
+    const inputType = p.tipo === 'multi' ? 'checkbox' : 'radio';
+    p.opciones.forEach((opt, idx) => {
+        uiOpciones.innerHTML += `<label class="flex items-center gap-3 p-3 bg-slate-50 border rounded-xl cursor-pointer hover:bg-slate-100 transition"><input type="${inputType}" name="runner-opt" value="${idx}" class="w-4 h-4 text-pink-500"><span class="text-sm font-medium">${opt}</span></label>`;
+    });
+} else if (p.tipo === 'fill') {
+    uiOpciones.innerHTML = `<input type="text" id="resp-fill" placeholder="Escribe tu respuesta..." class="w-full p-3 border rounded-xl font-mono text-sm focus:ring-2 focus:ring-pink-500 outline-none">`;
+} else if (p.tipo === 'select') {
+    p.opciones.forEach((par, idx) => {
+        const opcionesAleatorias = [...p.opciones.map(o => o.b)].sort(()=>Math.random()-0.5);
+        uiOpciones.innerHTML += `<div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl gap-4"><span class="text-sm font-medium">${par.a}</span><select class="p-2 border rounded text-xs select-resp" data-correct="${par.b}"><option value="">-- Elige opción --</option>${opcionesAleatorias.map(op => `<option value="${op}">${op}</option>`).join('')}</select></div>`;
+    });
+} else if (p.tipo === 'drag') {
+    uiOpciones.innerHTML = `<p class="text-xs font-bold text-slate-500">Arrastra las etiquetas a sus huecos:</p><div class="flex flex-wrap gap-2 mb-4" id="drag-chips">${p.opciones.map(o => `<div draggable="true" ondragstart="event.dataTransfer.setData('text', '${o.b}')" class="bg-pink-100 text-pink-700 px-3 py-1.5 rounded-lg font-bold text-xs drag-chip shadow-sm">${o.b}</div>`).join('')}</div><div class="space-y-2" id="drop-zones">${p.opciones.map((par, i) => `<div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl"><span class="text-sm">${par.a}</span><div class="drop-zone w-48 h-10 rounded-lg flex items-center justify-center text-xs font-bold text-slate-400 bg-white" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault(); this.classList.remove('drag-over'); this.textContent = event.dataTransfer.getData('text'); this.dataset.val = event.dataTransfer.getData('text');" data-correct="${par.b}">Arrastra aquí</div></div>`).join('')}</div>`;
+}
+
 window.comprobarRespuestaTest = function(saltada = false) {
     const p = runnerEstado.preguntas[runnerEstado.actual];
     let esCorrecta = false; let haRespondido = true;
@@ -967,14 +1040,24 @@ window.comprobarRespuestaTest = function(saltada = false) {
             document.getElementById('resp-fill').disabled = true;
         } else if (p.tipo === 'multi') {
             const checks = Array.from(document.querySelectorAll('input[name="runner-opt"]:checked')).map(c => parseInt(c.value));
-            if (checks.length === 0) haRespondido = false;
+            if(checks.length === 0) respondido = false;
             else {
-                const respuestasCorrectasSort = [...p.respuestas].sort(); const checksSort = checks.sort();
-                esCorrecta = (respuestasCorrectasSort.length === checksSort.length && respuestasCorrectasSort.every((val, index) => val === checksSort[index]));
+                const cor = [...p.respuestas].sort(), chk = checks.sort();
+                esCorrecta = (cor.length === chk.length && cor.every((v, i) => v === chk[i]));
             }
-        } else {
-            const check = document.querySelector('input[name="runner-opt"]:checked');
-            if (!check) haRespondido = false; else esCorrecta = (parseInt(check.value) === p.respuestas[0]);
+        } else if (p.tipo === 'single' || p.tipo === 'vf') {
+            const chk = document.querySelector('input[name="runner-opt"]:checked');
+            if(!chk) respondido = false; else esCorrecta = (parseInt(chk.value) === p.respuestas[0]);
+        } else if (p.tipo === 'select') {
+            const selects = document.querySelectorAll('.select-resp');
+            let aciertosPar = 0;
+            selects.forEach(s => { if(s.value === s.dataset.correct) aciertosPar++; });
+            esCorrecta = (aciertosPar === selects.length);
+        } else if (p.tipo === 'drag') {
+            const zones = document.querySelectorAll('.drop-zone');
+            let aciertosDrag = 0;
+            zones.forEach(z => { if(z.dataset.val === z.dataset.correct) aciertosDrag++; });
+            esCorrecta = (aciertosDrag === zones.length);
         }
     }
 
@@ -1017,8 +1100,11 @@ function finalizarTest() {
     let nivelText = ""; let esAprobado = nota10 >= 5.0;
     if (nota10 < 5) nivelText = "Insuficiente"; else if (nota10 < 7) nivelText = "Suficiente"; else if (nota10 < 9) nivelText = "Notable"; else nivelText = "Sobresaliente";
 
-    document.getElementById('res-aciertos').textContent = runnerEstado.aciertos; document.getElementById('res-fallos').textContent = runnerEstado.fallos; document.getElementById('res-blancos').textContent = runnerEstado.blancos;
-    document.getElementById('resultados-titulo').textContent = nota10.toFixed(2); document.getElementById('resultados-subtitulo').textContent = nivelText;
+    document.getElementById('res-aciertos').textContent = runnerEstado.aciertos; 
+    document.getElementById('res-fallos').textContent = runnerEstado.fallos; 
+    document.getElementById('res-blancos').textContent = runnerEstado.blancos;
+    document.getElementById('resultados-titulo').textContent = nota10.toFixed(2); 
+    document.getElementById('resultados-subtitulo').textContent = nivelText;
 
     const header = document.getElementById('resultados-header'); const icon = document.getElementById('resultados-icon');
     if (esAprobado) {
