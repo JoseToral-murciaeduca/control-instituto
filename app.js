@@ -768,25 +768,49 @@ function renderizarTestsDashboard() {
 }
 
 window.abrirEditorTest = function(id = null) {
-    document.getElementById('form-pregunta-box').classList.add('hidden');
+    const formPregunta = document.getElementById('form-pregunta-box');
+    if (formPregunta) formPregunta.classList.add('hidden');
+
     if (id) {
-        testEnEdicion = JSON.parse(JSON.stringify(appData.tests.find(t => t.id === id)));
-    } else {
-        testEnEdicion = { id: Date.now(), asignatura: appData.asignaturas[0]?.nombre || '', tema: '', titulo: '', preguntas: [] };
+        const testEncontrado = appData.tests.find(t => t.id === id);
+        testEnEdicion = testEncontrado ? JSON.parse(JSON.stringify(testEncontrado)) : null;
     }
-    document.getElementById('edit-test-asig').value = testEnEdicion.asignatura;
-    document.getElementById('edit-test-tema').value = testEnEdicion.tema;
-    document.getElementById('edit-test-titulo').value = testEnEdicion.titulo;
+
+    if (!testEnEdicion) {
+        testEnEdicion = {
+            id: Date.now(),
+            asignatura: (appData.asignaturas && appData.asignaturas[0]) ? appData.asignaturas[0].nombre : '',
+            tema: '',
+            titulo: '',
+            preguntas: []
+        };
+    }
+
+    const selAsig = document.getElementById('edit-test-asig');
+    const inpTema = document.getElementById('edit-test-tema');
+    const inpTitulo = document.getElementById('edit-test-titulo');
+    const modalEditor = document.getElementById('modal-editor-test');
+
+    if (selAsig) selAsig.value = testEnEdicion.asignatura;
+    if (inpTema) inpTema.value = testEnEdicion.tema;
+    if (inpTitulo) inpTitulo.value = testEnEdicion.titulo;
+
     renderizarPreguntasEditor();
 
-    const MODAL = document.getElementById('modal-editor-test');
-    MODAL.classList.remove('hidden');
+    // 1. Mostramos el modal quitando la clase hidden
+    if (modalEditor) {
+        modalEditor.classList.remove('hidden');
+    }
 
-    setTimeout(() => {
-        const PRIMERCAMPO = document.getElementById('edit-test-asig');
-        if (PRIMERCAMPO) PRIMERCAMPO.focus();
-    }, 50);
-}
+    // 2. Llevamos el foco de manera segura tras el renderizado del navegador
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            if (selAsig) {
+                selAsig.focus();
+            }
+        }, 80);
+    });
+};
 
 window.cerrarEditorTest = function() {
     document.getElementById('modal-editor-test').classList.add('hidden');
