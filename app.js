@@ -849,32 +849,38 @@ window.cambiarTipoPreguntaEditor = function(pregGuardada = null) {
     const box = document.getElementById('edit-preg-opciones-box');
     box.innerHTML = '';
 
+    let p = pregGuardada ? JSON.parse(JSON.stringify(pregGuardada)) : null;
+    if (!p || p.tipo !== tipo) {
+        if (tipo === 'select' || tipo === 'drag') {
+            p = { opciones: [{a: '', b: ''}], respuestas: [] };
+        } else if (tipo === 'vf') {
+            p = { opciones: ["Verdadero", "Falso"], respuestas: [0] };
+        } else if (tipo === 'fill') {
+            p = { opciones: [], respuestas: [''] };
+        } else {
+            p = { opciones: ['', '', '', ''], respuestas: [0] };
+        }
+    }
+
     if (tipo === 'vf') {
-        let esCorrectaVerdadero = pregGuardada ? pregGuardada.respuestas[0] === 0 : true;
-        box.innerHTML = `
-            <p class="text-xs font-bold text-slate-500 mb-2">Marca la opción correcta:</p>
-            <div class="flex gap-4">
-                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="0" ${esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Verdadero</span></label>
-                <label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded border border-slate-200 w-1/2"><input type="radio" name="vf-opt" value="1" ${!esCorrectaVerdadero ? 'checked' : ''} class="w-4 h-4 text-pink-500 focus:ring-pink-500"> <span class="font-bold text-slate-700">Falso</span></label>
-            </div>`;
+        let corr = p.respuestas[0] === 0 ? 'checked' : '';
+        let corrF = p.respuestas[0] === 1 ? 'checked' : '';
+        box.innerHTML = `<label class="flex gap-2"><input type="radio" name="vf-opt" value="0" ${corr}> Verdadero</label><label class="flex gap-2"><input type="radio" name="vf-opt" value="1" ${corrF}> Falso</label>`;
     } else if (tipo === 'fill') {
-        let val = pregGuardada ? pregGuardada.respuestas[0] : '';
-        box.innerHTML = `
-            <p class="text-xs font-bold text-slate-500 mb-2">Escribe la palabra o código correcto:</p>
-            <input type="text" id="fill-correcta" value="${val}" placeholder="Ej. out" class="w-full p-2 border border-slate-300 rounded font-mono text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
-            <p class="text-[10px] text-slate-400 mt-1 italic">* En el enunciado pon "___" donde quieres que el alumno escriba.</p>`;
+        box.innerHTML = `<label class="text-xs font-bold">Respuesta correcta:</label><input type="text" id="fill-correcta" value="${p.respuestas[0] || ''}" class="w-full p-2 border rounded bg-white mt-1">`;
     } else if (tipo === 'select' || tipo === 'drag') {
-        box.innerHTML = document.getElementById('pares-container');
+        box.innerHTML = `<p class="text-xs font-bold mb-2">Define parejas de elementos (Texto / Hueco o Etiqueta y Destino):</p><div id="pares-container" class="space-y-2"></div><button type="button" onclick="agregarParEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Pareja</button>`;
         const container = document.getElementById('pares-container');
-        pares.forEach((par, i) => {
-           container.innerHTML += '<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par. || '`}" class="p-1.5 border rounded text-xs flex-1 par-a"><input type="text" placeholder="Respuesta/Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b"></div>`; 
+        const pares = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'object') ? p.opciones : [{a: '', b: ''}];
+        pares.forEach((par) => {
+            container.innerHTML += `<div class="flex gap-2 items-center"><input type="text" placeholder="Concepto/Texto" value="${par.a || ''}" class="p-1.5 border rounded text-xs flex-1 par-a"><input type="text" placeholder="Respuesta / Hueco" value="${par.b || ''}" class="p-1.5 border rounded text-xs flex-1 par-b"></div>`;
         });
     } else {
         box.innerHTML = `<p class="text-xs font-bold mb-2">Opciones (hasta 8):</p><div id="opciones-dinamicas" class="space-y-2"></div><button type="button" onclick="agregarOpcionEditor()" class="mt-2 text-xs bg-pink-100 text-pink-700 font-bold px-3 py-1.5 rounded">+ Añadir Opción</button>`;
         const container = document.getElementById('opciones-dinamicas');
-        const opts = p.opciones.length ? p.opciones : ['', '', '', ''];
+        const opts = (Array.isArray(p.opciones) && typeof p.opciones[0] === 'string') ? p.opciones : ['', '', '', ''];
         opts.forEach((optText, i) => {
-            const checked = p.respuestas.includes(i) ? 'checked' : '';
+            const checked = p.respuestas && p.respuestas.includes(i) ? 'checked' : '';
             container.innerHTML += `<div class="flex items-center gap-2 opt-row"><input type="${tipo === 'multi' ? 'checkbox' : 'radio'}" name="opt-correcta" value="${i}" ${checked} class="w-4 h-4"><input type="text" value="${optText}" placeholder="Opción ${i+1}" class="flex-1 p-1.5 border rounded text-xs opt-text"></div>`;
         });
     }
