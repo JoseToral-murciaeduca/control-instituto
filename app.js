@@ -1008,14 +1008,17 @@ function pintarPreguntaActual() {
     } else {
         document.getElementById('runner-enunciado').textContent = enunHtml;
     }
-
+    
+    // Renderizar multimedia (Imagen y Código) de forma segura
     const multimediaBox = document.getElementById('runner-multimedia');
-    multimediaBox.innerHTML = '';
-    if(p.imagen) {
-        multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
-    }
-    if(p.codigo) {
-        multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
+    if (multimediaBox) {
+        multimediaBox.innerHTML = '';
+        if(p.imagen) {
+            multimediaBox.innerHTML += `<img src="${p.imagen}" class="max-h-48 rounded-lg mx-auto shadow border object-contain">`;
+        }
+        if(p.codigo) {
+            multimediaBox.innerHTML += `<pre class="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner"><code>${p.codigo}</code></pre>`;
+        }
     }
 
     const uiOpciones = document.getElementById('runner-opciones');
