@@ -1036,6 +1036,36 @@ window.guardarTestCompleto = function() {
     cerrarEditorTest();
 }
 
+// Rellena el desplegable de filtro con las asignaturas disponibles en los tests
+window.actualizarFiltroAsignaturasTests = function() {
+    const select = document.getElementById('filtro-tests-asig');
+    if (!select) return;
+
+    // Extrae las asignaturas únicas de los tests creados
+    const asignaturasUnicas = [...new Set(appData.tests.map(t => t.asignatura))].filter(Boolean);
+
+    // Guarda la opción seleccionada actual para no perderla si se recarga
+    const valorActual = select.value;
+
+    select.innerHTML = '<option value="todas">Todas las asignaturas</option>';
+    asignaturasUnicas.forEach(asig => {
+        select.innerHTML += `<option value="${asig}">${asig}</option>`;
+    });
+
+    if (asignaturasUnicas.includes(valorActual)) {
+        select.value = valorActual;
+    }
+};
+
+// Filtra la visualización de los tests en la rejilla
+window.filtrarTestsPorAsignatura = function() {
+    const asignaturaSeleccionada = document.getElementById('filtro-tests-asig').value;
+
+    // Si tienes una función que renderiza la rejilla (por ejemplo, renderizarTests()), 
+    // puedes pasarle los datos filtrados o un flag:
+    renderizarListaTests(asignaturaSeleccionada);
+};
+
 // --- EJECUCIÓN DEL TEST (RUNNER) ---
 let runnerEstado = null;
 
