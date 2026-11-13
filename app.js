@@ -130,16 +130,24 @@ window.guardarConfigHorario = function() {
 // NAVEGACIÓN Y RESPONSIVE
 // ==========================================
 window.cambiarSeccion = function(idSeccion) {
-    // Oculta todas las secciones con la clase .seccion-app
     document.querySelectorAll('.seccion-app').forEach(sec => {
         sec.classList.add('hidden');
     });
 
-    // Muestra únicamente la seleccionada
     const seccionActiva = document.getElementById(idSeccion);
     if (seccionActiva) {
         seccionActiva.classList.remove('hidden');
-        window.scrollTo(0, 0); // Vuelve arriba del todo
+        window.scrollTo(0, 0);
+    }
+
+    // Si el usuario entra a la sección de Repaso y Tests, actualizamos el desplegable
+    if (idSeccion === 'tests-manager') {
+        if (typeof actualizarFiltroAsignaturasTests === 'function') {
+            actualizarFiltroAsignaturasTests();
+        }
+        if (typeof renderizarListaTests === 'function') {
+            renderizarListaTests();
+        }
     }
 };
 
@@ -772,10 +780,19 @@ window.actualizarFiltroAsignaturasTests = function() {
     const select = document.getElementById('filtro-tests-asig');
     if (!select) return;
 
-    // Extrae las asignaturas únicas de los tests creados
-    const asignaturasUnicas = [...new Set(appData.tests.map(t => t.asignatura))].filter(Boolean);
+    // 1. Extraemos las asignaturas tanto de los tests como de la lista general de asignaturas
+    let asignaturasUnicas = [];
+    if (appData.tests && Array.isArray(appData.tests)) {
+        asignaturasUnicas = [...new Set(appData.tests.map(t => t.asignatura))].filter(Boolean);
+    }
+    if (appData.asignaturas && Array.isArray(appData.asignaturas)) {
+        const asigsGlobales = appData.asignaturas.map(a => a.nombre || a);
+        asignaturasUnicas = [...new Set([...asignaturasUnicas, ...asigsGlobales])].filter(Boolean);
+    }
 
-    // Guarda la opción seleccionada actual para no perderla si se recarga
+    // 2. Ordenar alfabéticamente de forma limpia (ignorando mayúsculas/acentos)
+    asignaturasUnicas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'accent' }));
+
     const valorActual = select.value;
 
     select.innerHTML = '<option value="todas">Todas las asignaturas</option>';
