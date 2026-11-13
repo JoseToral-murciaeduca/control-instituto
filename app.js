@@ -820,6 +820,7 @@ window.renderizarListaTests = function() {
     const asignaturaFiltro = selectFiltro ? selectFiltro.value : 'todas';
     let testsAMostrar = appData.tests || [];
 
+    // 1. Filtrar por asignatura si procede
     if (asignaturaFiltro !== 'todas') {
         testsAMostrar = testsAMostrar.filter(t => {
             const asigTest = (t.asignatura || '').trim().toLowerCase();
@@ -827,6 +828,24 @@ window.renderizarListaTests = function() {
             return asigTest === asigFiltro;
         });
     }
+
+    // 2. Ordenar jerárquicamente: Asignatura > Tema > Título
+    testsAMostrar.sort((a, b) => {
+        // Comparar Asignatura
+        const asigA = (a.asignatura || '').trim().toLowerCase();
+        const asigB = (b.asignatura || '').trim().toLowerCase();
+        if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', { sensitivity: 'accent' });
+
+        // Si la asignatura es igual, comparar Tema
+        const temaA = (a.tema || '').trim().toLowerCase();
+        const temaB = (b.tema || '').trim().toLowerCase();
+        if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', { sensitivity: 'accent' });
+
+        // Si el tema también es igual, comparar Título
+        const titA = (a.titulo || '').trim().toLowerCase();
+        const titB = (b.titulo || '').trim().toLowerCase();
+        return titA.localeCompare(titB, 'es', { sensitivity: 'accent' });
+    });
 
     grid.innerHTML = '';
 
@@ -839,7 +858,6 @@ window.renderizarListaTests = function() {
         return;
     }
 
-    // Función auxiliar para asignar el color decorativo según la asignatura
     const obtenerEstiloAsignatura = (asig) => {
         const a = (asig || '').toLowerCase();
         if (a.includes('acceso')) {
