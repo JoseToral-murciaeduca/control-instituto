@@ -815,27 +815,18 @@ window.filtrarTestsPorAsignatura = function() {
 window.renderizarListaTests = function() {
     const grid = document.getElementById('lista-tests-grid');
     const selectFiltro = document.getElementById('filtro-tests-asig');
-    if (!grid) {
-        console.warn("⚠️ No se encontró el elemento #lista-tests-grid en el DOM");
-        return;
-    }
+    if (!grid) return;
 
     const asignaturaFiltro = selectFiltro ? selectFiltro.value : 'todas';
     let testsAMostrar = appData.tests || [];
 
-    console.log("📚 Total de tests en appData:", testsAMostrar.length);
-    console.log("🔍 Filtrando por asignatura:", asignaturaFiltro);
-
     if (asignaturaFiltro !== 'todas') {
         testsAMostrar = testsAMostrar.filter(t => {
-            // Comparamos limpiando espacios y mayúsculas/minúsculas para evitar fallos de concordancia
             const asigTest = (t.asignatura || '').trim().toLowerCase();
             const asigFiltro = asignaturaFiltro.trim().toLowerCase();
             return asigTest === asigFiltro;
         });
     }
-
-    console.log("✅ Tests a mostrar tras el filtro:", testsAMostrar.length);
 
     grid.innerHTML = '';
 
@@ -848,13 +839,28 @@ window.renderizarListaTests = function() {
         return;
     }
 
+    // Función auxiliar para asignar el color decorativo según la asignatura
+    const obtenerEstiloAsignatura = (asig) => {
+        const a = (asig || '').toLowerCase();
+        if (a.includes('acceso')) {
+            return { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' };
+        } else if (a.includes('interfaces')) {
+            return { border: 'border-t-pink-500', bg: 'bg-pink-50', text: 'text-pink-600' };
+        } else if (a.includes('sistemas') || a.includes('gestión')) {
+            return { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' };
+        }
+        return { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' };
+    };
+
     testsAMostrar.forEach(test => {
         const numPreguntas = test.preguntas ? test.preguntas.length : 0;
+        const estilo = obtenerEstiloAsignatura(test.asignatura);
+
         grid.innerHTML += `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 ${estilo.border} flex flex-col justify-between hover:shadow-md transition">
                 <div>
-                    <span class="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-wider">${test.asignatura} ${test.tema ? '• ' + test.tema : ''}</span>
-                    <h3 class="font-bold text-xl text-slate-800 mt-2 mb-1">${test.titulo || 'Sin título'}</h3>
+                    <span class="text-[10px] font-bold ${estilo.text} ${estilo.bg} px-2.5 py-1 rounded-full uppercase tracking-wider">${test.asignatura} ${test.tema ? '• ' + test.tema : ''}</span>
+                    <h3 class="font-bold text-xl text-slate-800 mt-3 mb-1">${test.titulo || 'Sin título'}</h3>
                     <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-list-ul mr-1"></i> ${numPreguntas} preguntas</p>
                 </div>
                 <div class="flex gap-2 items-center pt-4 border-t border-slate-100">
