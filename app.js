@@ -807,23 +807,35 @@ window.actualizarFiltroAsignaturasTests = function() {
 
 // Filtra la visualización de los tests en la rejilla
 window.filtrarTestsPorAsignatura = function() {
-    if (typeof renderizarListaTests === 'function') {
-        renderizarListaTests();
-    }
+    const select = document.getElementById('filtro-tests-asig');
+    console.log("👉 Desplegable cambiado a:", select ? select.value : "No encontrado");
+    renderizarListaTests();
 };
 
 window.renderizarListaTests = function() {
     const grid = document.getElementById('lista-tests-grid');
     const selectFiltro = document.getElementById('filtro-tests-asig');
-    if (!grid) return;
+    if (!grid) {
+        console.warn("⚠️ No se encontró el elemento #lista-tests-grid en el DOM");
+        return;
+    }
 
     const asignaturaFiltro = selectFiltro ? selectFiltro.value : 'todas';
-
-    // Filtramos el array de tests según la opción seleccionada
     let testsAMostrar = appData.tests || [];
+
+    console.log("📚 Total de tests en appData:", testsAMostrar.length);
+    console.log("🔍 Filtrando por asignatura:", asignaturaFiltro);
+
     if (asignaturaFiltro !== 'todas') {
-        testsAMostrar = testsAMostrar.filter(t => t.asignatura === asignaturaFiltro);
+        testsAMostrar = testsAMostrar.filter(t => {
+            // Comparamos limpiando espacios y mayúsculas/minúsculas para evitar fallos de concordancia
+            const asigTest = (t.asignatura || '').trim().toLowerCase();
+            const asigFiltro = asignaturaFiltro.trim().toLowerCase();
+            return asigTest === asigFiltro;
+        });
     }
+
+    console.log("✅ Tests a mostrar tras el filtro:", testsAMostrar.length);
 
     grid.innerHTML = '';
 
@@ -836,7 +848,6 @@ window.renderizarListaTests = function() {
         return;
     }
 
-    // Pintamos las tarjetas filtradas (mantén aquí la estructura HTML exacta que ya usabas para cada tarjeta de test)
     testsAMostrar.forEach(test => {
         const numPreguntas = test.preguntas ? test.preguntas.length : 0;
         grid.innerHTML += `
