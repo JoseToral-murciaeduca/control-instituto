@@ -896,7 +896,32 @@ window.renderizarListaTests = function() {
     });
 };
 
+window.poblarSelectAsignaturasEditor = function(asignaturaSeleccionada = '') {
+    const select = document.getElementById('edit-test-asignatura'); // O el id exacto que tenga tu select de asignatura en el HTML del editor
+    if (!select) return;
+
+    // Extraemos las asignaturas de la lista general y de los tests existentes
+    let asignaturasUnicas = [];
+    if (appData.asignaturas && Array.isArray(appData.asignaturas)) {
+        asignaturasUnicas = appData.asignaturas.map(a => a.nombre || a);
+    }
+    if (appData.tests && Array.isArray(appData.tests)) {
+        const asigsTests = appData.tests.map(t => t.asignatura);
+        asignaturasUnicas = [...new Set([...asignaturasUnicas, ...asigsTests])].filter(Boolean);
+    }
+
+    // Ordenar alfabéticamente
+    asignaturasUnicas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'accent' }));
+
+    select.innerHTML = '<option value="">Selecciona una asignatura...</option>';
+    asignaturasUnicas.forEach(asig => {
+        const selected = asig === asignaturaSeleccionada ? 'selected' : '';
+        select.innerHTML += `<option value="${asig}" ${selected}>${asig}</option>`;
+    });
+};
+
 window.abrirEditorTest = function(id = null) {
+    
     const formPregunta = document.getElementById('form-pregunta-box');
     if (formPregunta) formPregunta.classList.add('hidden');
 
@@ -939,6 +964,14 @@ window.abrirEditorTest = function(id = null) {
             }
         }, 80);
     });
+    
+    // Llamamos a la función para rellenar el desplegable (pasando la asignatura si estamos editando uno existente)
+    const testActual = id ? appData.tests.find(t => t.id === id) : null;
+    poblarSelectAsignaturasEditor(testActual ? testActual.asignatura : '');
+
+    // Mostrar el modal...
+    const modal = document.getElementById('editor-test-modal'); // o el ID de tu modal
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.abrirModalPregunta = function(index = null) {
