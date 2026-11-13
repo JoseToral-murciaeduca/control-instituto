@@ -807,11 +807,58 @@ window.actualizarFiltroAsignaturasTests = function() {
 
 // Filtra la visualización de los tests en la rejilla
 window.filtrarTestsPorAsignatura = function() {
-    const asignaturaSeleccionada = document.getElementById('filtro-tests-asig').value;
+    if (typeof renderizarListaTests === 'function') {
+        renderizarListaTests();
+    }
+};
 
-    // Si tienes una función que renderiza la rejilla (por ejemplo, renderizarTests()), 
-    // puedes pasarle los datos filtrados o un flag:
-    renderizarListaTests(asignaturaSeleccionada);
+window.renderizarListaTests = function() {
+    const grid = document.getElementById('lista-tests-grid');
+    const selectFiltro = document.getElementById('filtro-tests-asig');
+    if (!grid) return;
+
+    const asignaturaFiltro = selectFiltro ? selectFiltro.value : 'todas';
+
+    // Filtramos el array de tests según la opción seleccionada
+    let testsAMostrar = appData.tests || [];
+    if (asignaturaFiltro !== 'todas') {
+        testsAMostrar = testsAMostrar.filter(t => t.asignatura === asignaturaFiltro);
+    }
+
+    grid.innerHTML = '';
+
+    if (testsAMostrar.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-slate-200">
+                <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
+                <p>No hay tests creados para esta asignatura.</p>
+            </div>`;
+        return;
+    }
+
+    // Pintamos las tarjetas filtradas (mantén aquí la estructura HTML exacta que ya usabas para cada tarjeta de test)
+    testsAMostrar.forEach(test => {
+        const numPreguntas = test.preguntas ? test.preguntas.length : 0;
+        grid.innerHTML += `
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition">
+                <div>
+                    <span class="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-wider">${test.asignatura} ${test.tema ? '• ' + test.tema : ''}</span>
+                    <h3 class="font-bold text-xl text-slate-800 mt-2 mb-1">${test.titulo || 'Sin título'}</h3>
+                    <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-list-ul mr-1"></i> ${numPreguntas} preguntas</p>
+                </div>
+                <div class="flex gap-2 items-center pt-4 border-t border-slate-100">
+                    <button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 px-4 rounded-xl text-sm hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-play"></i> Iniciar
+                    </button>
+                    <button onclick="abrirEditorTest(${test.id})" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="eliminarTest(${test.id})" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>`;
+    });
 };
 
 window.abrirEditorTest = function(id = null) {
