@@ -897,8 +897,11 @@ window.renderizarListaTests = function() {
 };
 
 window.poblarSelectAsignaturasEditor = function(asignaturaSeleccionada = '') {
-    const select = document.getElementById('edit-test-asignatura'); // O el id exacto que tenga tu select de asignatura en el HTML del editor
-    if (!select) return;
+    const select = document.getElementById('edit-test-asig');
+    if (!select) {
+        console.warn("⚠️ No se encuentra el select de asignatura con ID 'edit-test-asig'");
+        return;
+    }
 
     // Extraemos las asignaturas de la lista general y de los tests existentes
     let asignaturasUnicas = [];
@@ -910,12 +913,12 @@ window.poblarSelectAsignaturasEditor = function(asignaturaSeleccionada = '') {
         asignaturasUnicas = [...new Set([...asignaturasUnicas, ...asigsTests])].filter(Boolean);
     }
 
-    // Ordenar alfabéticamente
+    // Ordenar alfabéticamente de la A a la Z
     asignaturasUnicas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'accent' }));
 
     select.innerHTML = '<option value="">Selecciona una asignatura...</option>';
     asignaturasUnicas.forEach(asig => {
-        const selected = asig === asignaturaSeleccionada ? 'selected' : '';
+        const selected = (asig === asignaturaSeleccionada) ? 'selected' : '';
         select.innerHTML += `<option value="${asig}" ${selected}>${asig}</option>`;
     });
 };
