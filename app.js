@@ -896,6 +896,39 @@ window.renderizarListaTests = function() {
     });
 };
 
+window.initFabCrearTest = function() {
+    const fabContainer = document.getElementById('fab-crear-test-container');
+    // Buscamos el botón original de crear test dentro de la sección
+    const botonOriginal = document.querySelector('#tests-manager button[onclick*="abrirEditorTest"]');
+
+    if (!fabContainer || !botonOriginal) return;
+
+    // IntersectionObserver detecta de forma muy eficiente si el botón original es visible
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) {
+                // El botón original salió de la pantalla -> Mostramos el flotante
+                fabContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+                fabContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+            } else {
+                // El botón original está visible -> Ocultamos el flotante
+                fabContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                fabContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }
+        });
+    }, {
+        root: null,
+        threshold: 0
+    });
+
+    observer.observe(botonOriginal);
+};
+
+// Llama a esta función al cargar la página o cuando cambies a la sección de tests
+document.addEventListener('DOMContentLoaded', () => {
+    initFabCrearTest();
+});
+
 window.poblarSelectAsignaturasEditor = function(asignaturaSeleccionada = '') {
     const select = document.getElementById('edit-test-asig');
     if (!select) {
