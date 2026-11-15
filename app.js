@@ -976,6 +976,7 @@ window.renderizarListaTests = function() {
 
 window.initFabCrearTest = function() {
     const fabContainer = document.getElementById('fab-crear-test-container');
+    const modalContainer = document.getElementById('modal-test-container');
     const botonOriginal = document.querySelector('#tests-manager button[onclick*="abrirEditorTest"]');
 
     if (!fabContainer || !botonOriginal) return;
@@ -986,10 +987,16 @@ window.initFabCrearTest = function() {
                 // Si el botón original desaparece arriba, mostramos el flotante
                 fabContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
                 fabContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+
+                modalContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+                modalContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
             } else {
                 // Si el botón original vuelve a verse, ocultamos el flotante
                 fabContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
                 fabContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+                
+                modalContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                modalContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }
         });
     }, { threshold: 0 });
