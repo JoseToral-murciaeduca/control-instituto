@@ -859,15 +859,29 @@ window.renderizarListaTests = function() {
     }
 
     const obtenerEstiloAsignatura = (asig) => {
-        const a = (asig || '').toLowerCase();
-        if (a.includes('acceso')) {
-            return { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' };
-        } else if (a.includes('interfaces')) {
-            return { border: 'border-t-pink-500', bg: 'bg-pink-50', text: 'text-pink-600' };
-        } else if (a.includes('sistemas') || a.includes('gestión')) {
-            return { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' };
+        const nombreAsig = (asig || '').trim().toLowerCase();
+
+        // Paleta variada de colores vivos en Tailwind
+        const paletas = [
+            { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
+            { border: 'border-t-pink-500', bg: 'bg-pink-50', text: 'text-pink-600' },
+            { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+            { border: 'border-t-amber-500', bg: 'bg-amber-50', text: 'text-amber-600' },
+            { border: 'border-t-purple-500', bg: 'bg-purple-50', text: 'text-purple-600' },
+            { border: 'border-t-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-600' },
+            { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' },
+            { border: 'border-t-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' }
+        ];
+
+        // Calcula un número único (hash) basado en los caracteres del nombre de la asignatura
+        let hash = 0;
+        for (let i = 0; i < nombreAsig.length; i++) {
+            hash = nombreAsig.charCodeAt(i) + ((hash << 5) - hash);
         }
-        return { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' };
+
+        // Asigna un color de la lista de forma estable según ese hash
+        const index = Math.abs(hash) % paletas.length;
+        return paletas[index];
     };
 
     testsAMostrar.forEach(test => {
