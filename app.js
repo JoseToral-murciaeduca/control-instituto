@@ -858,10 +858,26 @@ window.renderizarListaTests = function() {
         return;
     }
 
-    const obtenerEstiloAsignatura = (asig) => {
-        const nombreAsig = (asig || '').trim().toLowerCase();
+    const obtenerEstiloAsignatura = (nombreAsignatura) => {
+        // 1. Buscamos si la asignatura tiene un color personalizado guardado en appData.asignaturas
+        if (appData.asignaturas && Array.isArray(appData.asignaturas)) {
+            const asignaturaEncontrada = appData.asignaturas.find(
+                a => (a.nombre || '').trim().toLowerCase() === (nombreAsignatura || '').trim().toLowerCase()
+            );
+            if (asignaturaEncontrada && asignaturaEncontrada.color) {
+                // Si tiene color personalizado (ej. el HEX del color picker), devolvemos estilos en línea
+                const hexColor = asignaturaEncontrada.color;
+                return {
+                    tipo: 'personalizado',
+                    borderStyle: `border-top-color: ${hexColor}; border-top-width: 4px;`,
+                    // Creamos un fondo translúcido combinando el color HEX con opacidad baja (aprox 12%)
+                    bgStyle: `background-color: ${hexColor}20; color: ${hexColor};`
+                };
+            }
+        }
 
-        // Paleta variada de colores vivos en Tailwind
+        // 2. Si no tiene color personalizado, usamos la paleta automática por defecto
+        const nombreAsig = (nombreAsignatura || '').trim().toLowerCase();
         const paletas = [
             { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
             { border: 'border-t-pink-500', bg: 'bg-pink-50', text: 'text-pink-600' },
@@ -873,15 +889,12 @@ window.renderizarListaTests = function() {
             { border: 'border-t-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' }
         ];
 
-        // Calcula un número único (hash) basado en los caracteres del nombre de la asignatura
         let hash = 0;
         for (let i = 0; i < nombreAsig.length; i++) {
             hash = nombreAsig.charCodeAt(i) + ((hash << 5) - hash);
         }
-
-        // Asigna un color de la lista de forma estable según ese hash
         const index = Math.abs(hash) % paletas.length;
-        return paletas[index];
+        return { tipo: 'tailwind', ...paletas[index] };
     };
 
     testsAMostrar.forEach(test => {
