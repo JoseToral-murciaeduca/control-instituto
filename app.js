@@ -976,33 +976,28 @@ window.renderizarListaTests = function() {
 
 window.initFabCrearTest = function() {
     const fabContainer = document.getElementById('fab-crear-test-container');
-    // Buscamos el botón original de crear test dentro de la sección
     const botonOriginal = document.querySelector('#tests-manager button[onclick*="abrirEditorTest"]');
 
     if (!fabContainer || !botonOriginal) return;
 
-    // IntersectionObserver detecta de forma muy eficiente si el botón original es visible
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (!entry.isIntersecting) {
-                // El botón original salió de la pantalla -> Mostramos el flotante
+                // Si el botón original desaparece arriba, mostramos el flotante
                 fabContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
                 fabContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
             } else {
-                // El botón original está visible -> Ocultamos el flotante
+                // Si el botón original vuelve a verse, ocultamos el flotante
                 fabContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
                 fabContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }
         });
-    }, {
-        root: null,
-        threshold: 0
-    });
+    }, { threshold: 0 });
 
     observer.observe(botonOriginal);
 };
 
-// Llama a esta función al cargar la página o cuando cambies a la sección de tests
+// Ejecutar al cargar la página o al cambiar de sección a tests
 document.addEventListener('DOMContentLoaded', () => {
     initFabCrearTest();
 });
@@ -1081,11 +1076,18 @@ window.abrirEditorTest = function(id = null) {
     
     // Llamamos a la función para rellenar el desplegable (pasando la asignatura si estamos editando uno existente)
     const testActual = id ? appData.tests.find(t => t.id === id) : null;
-    poblarSelectAsignaturasEditor(testActual ? testActual.asignatura : '');
+    if (typeof poblarSelectAsignaturasEditor === 'function'){
+        poblarSelectAsignaturasEditor(testActual ? testActual.asignatura : '');
+    } 
 
     // Mostrar el modal...
     const modal = document.getElementById('editor-test-modal'); // o el ID de tu modal
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    }
 };
 
 window.abrirModalPregunta = function(index = null) {
