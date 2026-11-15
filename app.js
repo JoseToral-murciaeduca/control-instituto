@@ -858,25 +858,32 @@ window.renderizarListaTests = function() {
         return;
     }
 
+    // Convierte color HEX a RGBA de forma 100% compatible
+    const hexToRgba = (hex, alpha = 0.15) => {
+        let cleanHex = (hex || '').replace('#', '');
+        if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(x => x + x).join('');
+        const num = parseInt(cleanHex, 16);
+        if (isNaN(num)) return 'rgba(59, 130, 246, 0.15)'; // fallback azul
+        return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    };
+
     const obtenerEstiloAsignatura = (nombreAsignatura) => {
-        // 1. Buscamos si la asignatura tiene un color personalizado guardado en appData.asignaturas
+        // 1. Comprobamos si tiene color personalizado en appData.asignaturas
         if (appData.asignaturas && Array.isArray(appData.asignaturas)) {
             const asignaturaEncontrada = appData.asignaturas.find(
                 a => (a.nombre || '').trim().toLowerCase() === (nombreAsignatura || '').trim().toLowerCase()
             );
             if (asignaturaEncontrada && asignaturaEncontrada.color) {
-                // Si tiene color personalizado (ej. el HEX del color picker), devolvemos estilos en línea
                 const hexColor = asignaturaEncontrada.color;
                 return {
                     tipo: 'personalizado',
-                    borderStyle: `border-top-color: ${hexColor}; border-top-width: 4px;`,
-                    // Creamos un fondo translúcido combinando el color HEX con opacidad baja (aprox 12%)
-                    bgStyle: `background-color: ${hexColor}20; color: ${hexColor};`
+                    cardStyle: `border: 1px solid #e2e8f0; border-top: 4px solid ${hexColor};`,
+                    badgeStyle: `background-color: ${hexToRgba(hexColor, 0.15)}; color: ${hexColor};`
                 };
             }
         }
 
-        // 2. Si no tiene color personalizado, usamos la paleta automática por defecto
+        // 2. Si no tiene, usamos la paleta automática por defecto
         const nombreAsig = (nombreAsignatura || '').trim().toLowerCase();
         const paletas = [
             { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
@@ -893,8 +900,82 @@ window.renderizarListaTests = function() {
         for (let i = 0; i < nombreAsig.length; i++) {
             hash = nombreAsig.charCodeAt(i) + ((hash << 5) - hash);
         }
-        const index = Math.abs(hash) % paletas.length;
-        return { tipo: 'tailwind', ...paletas[index] };
+        return { tipo: 'tailwind', ...paletas[Math.abs(hash) % paletas.length] };
+    };
+
+    window.renderizarListaTests = function() {
+        const grid = document.getElementById('lista-tests-grid');
+        const selectFiltro = document.getElementById('filtro-tests-asig');
+        if (!grid) return;
+
+        const asignaturaFiltro = selectFiltro ? selectFiltro.value : 'todas';
+        let testsAMostrar = appData.tests || [];
+
+        if (asignaturaFiltro !== 'todas') {
+            testsAMostrar = testsAMostrar.filter(t => {
+                const asigTest = (t.asignatura || '').trim().toLowerCase();
+                const asigFiltro = asignaturaFiltro.trim().toLowerCase();
+                return asigTest === asigFiltro;
+            });
+        }
+
+        // Ordenar jerárquicamente: Asignatura > Tema > Título
+        testsAMostrar.sort((a, b) => {
+            const asigA = (a.asignatura || '').trim().toLowerCase();
+            const asigB = (b.asignatura || '').trim().toLowerCase();
+            if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', { sensitivity: 'accent' });
+
+            const temaA = (a.tema || '').trim().toLowerCase();
+            const temaB = (b.tema || '').trim().toLowerCase();
+            if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', { sensitivity: 'accent' });
+
+            const titA = (a.titulo || '').trim().toLowerCase();
+            const titB = (b.titulo || '').trim().toLowerCase();
+            return titA.localeCompare(titB, 'es', { sensitivity: 'accent' });
+        });
+
+        grid.innerHTML = '';
+
+        if (testsAMostrar.length === 0) {
+            grid.innerHTML = `
+            <div class="col-span-full text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-slate-200">
+                <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
+                <p>No hay tests creados para esta asignatura.</p>
+            </div>`;
+            return;
+        }
+
+        testsAMostrar.forEach(test => {
+            const numPreguntas = test.preguntas ? test.preguntas.length : 0;
+            const estilo = obtenerEstiloAsignatura(test.asignatura);
+
+            const cardStyleAttr = estilo.tipo === 'personalizado' ? `style="${estilo.cardStyle}"` : '';
+            const cardClassAttr = estilo.tipo === 'tailwind' ? `border border-slate-200 border-t-4 ${estilo.border}` : 'border border-slate-200';
+            const badgeAttr = estilo.tipo === 'personalizado' ? `style="${estilo.badgeStyle}"` : '';
+            const badgeClass = estilo.tipo === 'tailwind' ? `text-[10px] font-bold ${estilo.text} ${estilo.bg} px-2.5 py-1 rounded-full uppercase tracking-wider` : 'text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider';
+
+            grid.innerHTML += `
+            <div class="bg-white p-6 rounded-2xl shadow-sm ${cardClassAttr} flex flex-col justify-between hover:shadow-md transition" ${cardStyleAttr}>
+                <div>
+                    <span class="${badgeClass}" ${badgeAttr}>
+                        ${test.asignatura} ${test.tema ? '• ' + test.tema : ''}
+                    </span>
+                    <h3 class="font-bold text-xl text-slate-800 mt-3 mb-1">${test.titulo || 'Sin título'}</h3>
+                    <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-list-ul mr-1"></i> ${numPreguntas} preguntas</p>
+                </div>
+                <div class="flex gap-2 items-center pt-4 border-t border-slate-100">
+                    <button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 px-4 rounded-xl text-sm hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-play"></i> Iniciar
+                    </button>
+                    <button onclick="abrirEditorTest(${test.id})" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="eliminarTest(${test.id})" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer" title="Eliminar">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>`;
+        });
     };
 
     testsAMostrar.forEach(test => {
