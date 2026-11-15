@@ -140,13 +140,16 @@ window.cambiarSeccion = function(idSeccion) {
         window.scrollTo(0, 0);
     }
 
-    // Si el usuario entra a la sección de Repaso y Tests, actualizamos el desplegable
+    // 🟢 Al entrar en tests, cargamos todo al instante (adiós al problema de los dos clics)
     if (idSeccion === 'tests-manager') {
         if (typeof actualizarFiltroAsignaturasTests === 'function') {
             actualizarFiltroAsignaturasTests();
         }
         if (typeof renderizarListaTests === 'function') {
             renderizarListaTests();
+        }
+        if (typeof initFabCrearTest === 'function') {
+            initFabCrearTest();
         }
     }
 };
@@ -974,34 +977,32 @@ window.renderizarListaTests = function() {
     };
 }
 
-window.initFabCrearTest = function() {
-    const fabContainer = document.getElementById('fab-crear-test-container');
-    const modalContainer = document.getElementById('modal-test-container');
-    const botonOriginal = document.querySelector('#tests-manager button[onclick*="abrirEditorTest"]');
+window.initFabModal = function() {
+    const fabModal = document.getElementById('fab-modal-container');
+    // Buscamos el botón original de añadir pregunta dentro del modal
+    const botonAnadirOriginal = document.querySelector('#editor-test-modal button[onclick*="agregarPregunta"]'); // Ajusta el selector si tu función se llama diferente (ej: anadirPregunta, etc.)
+    const modalContent = document.getElementById('editor-test-modal');
 
-    if (!fabContainer || !botonOriginal) return;
+    if (!fabModal || !botonAnadirOriginal || !modalContent) return;
 
-    const observer = new IntersectionObserver((entries) => {
+    const observerModal = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (!entry.isIntersecting) {
-                // Si el botón original desaparece arriba, mostramos el flotante
-                fabContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-                fabContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
-
-                modalContainer.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-                modalContainer.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                // El botón original salió de la vista al hacer scroll en el modal -> Mostramos el FAB del modal
+                fabModal.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+                fabModal.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
             } else {
-                // Si el botón original vuelve a verse, ocultamos el flotante
-                fabContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
-                fabContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-                
-                modalContainer.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
-                modalContainer.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+                // El botón original es visible -> Ocultamos el FAB del modal
+                fabModal.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                fabModal.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
             }
         });
-    }, { threshold: 0 });
+    }, {
+        root: modalContent, // Rastrea el scroll dentro del modal
+        threshold: 0
+    });
 
-    observer.observe(botonOriginal);
+    observerModal.observe(botonAnadirOriginal);
 };
 
 // Ejecutar al cargar la página o al cambiar de sección a tests
@@ -1093,7 +1094,12 @@ window.abrirEditorTest = function(id = null) {
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            if (typeof initFabModal === 'function') {
+                initFabModal();
+            }
         }, 50);
+        
     }
 };
 
