@@ -834,17 +834,17 @@ window.renderizarListaTests = function() {
         // Comparar Asignatura
         const asigA = (a.asignatura || '').trim().toLowerCase();
         const asigB = (b.asignatura || '').trim().toLowerCase();
-        if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', { sensitivity: 'accent' });
+        if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', {sensitivity: 'accent'});
 
         // Si la asignatura es igual, comparar Tema
         const temaA = (a.tema || '').trim().toLowerCase();
         const temaB = (b.tema || '').trim().toLowerCase();
-        if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', { sensitivity: 'accent' });
+        if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', {sensitivity: 'accent'});
 
         // Si el tema también es igual, comparar Título
         const titA = (a.titulo || '').trim().toLowerCase();
         const titB = (b.titulo || '').trim().toLowerCase();
-        return titA.localeCompare(titB, 'es', { sensitivity: 'accent' });
+        return titA.localeCompare(titB, 'es', {sensitivity: 'accent'});
     });
 
     grid.innerHTML = '';
@@ -868,42 +868,42 @@ window.renderizarListaTests = function() {
     };
 
     const obtenerEstiloAsignatura = (nombreAsignatura) => {
-        // 1. Comprobamos si tiene color personalizado en appData.asignaturas
+        // 1. Buscamos si la asignatura tiene un color personalizado en appData.asignaturas
         if (appData.asignaturas && Array.isArray(appData.asignaturas)) {
-            const asignaturaEncontrada = appData.asignaturas.find(
+            const encontrada = appData.asignaturas.find(
                 a => (a.nombre || '').trim().toLowerCase() === (nombreAsignatura || '').trim().toLowerCase()
             );
-            if (asignaturaEncontrada && asignaturaEncontrada.color) {
-                const hexColor = asignaturaEncontrada.color;
+            if (encontrada && encontrada.color) {
+                const hex = encontrada.color;
                 return {
-                    tipo: 'personalizado',
-                    cardStyle: `border: 1px solid #e2e8f0; border-top: 4px solid ${hexColor};`,
-                    badgeStyle: `background-color: ${hexToRgba(hexColor, 0.15)}; color: ${hexColor};`
+                    border: hex,
+                    bg: hex + '20', // Añade transparencia suave para el fondo del badge
+                    text: hex
                 };
             }
         }
 
-        // 2. Si no tiene, usamos la paleta automática por defecto
-        const nombreAsig = (nombreAsignatura || '').trim().toLowerCase();
-        const paletas = [
-            { border: 'border-t-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
-            { border: 'border-t-pink-500', bg: 'bg-pink-50', text: 'text-pink-600' },
-            { border: 'border-t-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-            { border: 'border-t-amber-500', bg: 'bg-amber-50', text: 'text-amber-600' },
-            { border: 'border-t-purple-500', bg: 'bg-purple-50', text: 'text-purple-600' },
-            { border: 'border-t-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-600' },
-            { border: 'border-t-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-            { border: 'border-t-rose-500', bg: 'bg-rose-50', text: 'text-rose-600' }
+        // 2. Si no tiene color propio, usamos una paleta fija de colores seguros en HEX
+        const paletasHex = [
+            {border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', text: '#2563eb'}, // Azul
+            {border: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)', text: '#db2777'}, // Rosa
+            {border: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', text: '#059669'}, // Verde
+            {border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', text: '#d97706'}, // Ámbar
+            {border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)', text: '#7c3aed'}, // Morado
+            {border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.12)', text: '#0891b2'}, // Cían
+            {border: '#6366f1', bg: 'rgba(99, 102, 241, 0.12)', text: '#4f46e5'}, // Índigo
+            {border: '#f43f5e', bg: 'rgba(244, 63, 94, 0.12)', text: '#e11d48'}  // Rose
         ];
 
+        const nombre = (nombreAsignatura || '').trim().toLowerCase();
         let hash = 0;
-        for (let i = 0; i < nombreAsig.length; i++) {
-            hash = nombreAsig.charCodeAt(i) + ((hash << 5) - hash);
+        for (let i = 0; i < nombre.length; i++) {
+            hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
         }
-        return { tipo: 'tailwind', ...paletas[Math.abs(hash) % paletas.length] };
+        return paletasHex[Math.abs(hash) % paletasHex.length];
     };
 
-    window.renderizarListaTests = function() {
+    window.renderizarListaTests = function () {
         const grid = document.getElementById('lista-tests-grid');
         const selectFiltro = document.getElementById('filtro-tests-asig');
         if (!grid) return;
@@ -923,15 +923,15 @@ window.renderizarListaTests = function() {
         testsAMostrar.sort((a, b) => {
             const asigA = (a.asignatura || '').trim().toLowerCase();
             const asigB = (b.asignatura || '').trim().toLowerCase();
-            if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', { sensitivity: 'accent' });
+            if (asigA !== asigB) return asigA.localeCompare(asigB, 'es', {sensitivity: 'accent'});
 
             const temaA = (a.tema || '').trim().toLowerCase();
             const temaB = (b.tema || '').trim().toLowerCase();
-            if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', { sensitivity: 'accent' });
+            if (temaA !== temaB) return temaA.localeCompare(temaB, 'es', {sensitivity: 'accent'});
 
             const titA = (a.titulo || '').trim().toLowerCase();
             const titB = (b.titulo || '').trim().toLowerCase();
-            return titA.localeCompare(titB, 'es', { sensitivity: 'accent' });
+            return titA.localeCompare(titB, 'es', {sensitivity: 'accent'});
         });
 
         grid.innerHTML = '';
@@ -949,15 +949,10 @@ window.renderizarListaTests = function() {
             const numPreguntas = test.preguntas ? test.preguntas.length : 0;
             const estilo = obtenerEstiloAsignatura(test.asignatura);
 
-            const cardStyleAttr = estilo.tipo === 'personalizado' ? `style="${estilo.cardStyle}"` : '';
-            const cardClassAttr = estilo.tipo === 'tailwind' ? `border border-slate-200 border-t-4 ${estilo.border}` : 'border border-slate-200';
-            const badgeAttr = estilo.tipo === 'personalizado' ? `style="${estilo.badgeStyle}"` : '';
-            const badgeClass = estilo.tipo === 'tailwind' ? `text-[10px] font-bold ${estilo.text} ${estilo.bg} px-2.5 py-1 rounded-full uppercase tracking-wider` : 'text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider';
-
             grid.innerHTML += `
-            <div class="bg-white p-6 rounded-2xl shadow-sm ${cardClassAttr} flex flex-col justify-between hover:shadow-md transition" ${cardStyleAttr}>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition" style="border-top: 4px solid ${estilo.border};">
                 <div>
-                    <span class="${badgeClass}" ${badgeAttr}>
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider" style="background-color: ${estilo.bg}; color: ${estilo.text};">
                         ${test.asignatura} ${test.tema ? '• ' + test.tema : ''}
                     </span>
                     <h3 class="font-bold text-xl text-slate-800 mt-3 mb-1">${test.titulo || 'Sin título'}</h3>
@@ -977,32 +972,7 @@ window.renderizarListaTests = function() {
             </div>`;
         });
     };
-
-    testsAMostrar.forEach(test => {
-        const numPreguntas = test.preguntas ? test.preguntas.length : 0;
-        const estilo = obtenerEstiloAsignatura(test.asignatura);
-
-        grid.innerHTML += `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 border-t-4 ${estilo.border} flex flex-col justify-between hover:shadow-md transition">
-                <div>
-                    <span class="text-[10px] font-bold ${estilo.text} ${estilo.bg} px-2.5 py-1 rounded-full uppercase tracking-wider">${test.asignatura} ${test.tema ? '• ' + test.tema : ''}</span>
-                    <h3 class="font-bold text-xl text-slate-800 mt-3 mb-1">${test.titulo || 'Sin título'}</h3>
-                    <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-list-ul mr-1"></i> ${numPreguntas} preguntas</p>
-                </div>
-                <div class="flex gap-2 items-center pt-4 border-t border-slate-100">
-                    <button onclick="iniciarTest(${test.id})" class="flex-1 bg-slate-900 text-white font-bold py-2 px-4 rounded-xl text-sm hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-play"></i> Iniciar
-                    </button>
-                    <button onclick="abrirEditorTest(${test.id})" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer" title="Editar">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button onclick="eliminarTest(${test.id})" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer" title="Eliminar">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>`;
-    });
-};
+}
 
 window.initFabCrearTest = function() {
     const fabContainer = document.getElementById('fab-crear-test-container');
